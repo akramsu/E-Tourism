@@ -17,6 +17,7 @@ import {
   AlertCircle,
   TrendingDown
 } from "lucide-react"
+import { InteractiveDonutChart } from "@/components/charts/interactive-donut-chart"
 
 // TypeScript interfaces for live data
 interface AgeGroup {
@@ -270,6 +271,27 @@ export function DemographicInsights() {
     }
   }
 
+  // Helper function to transform age groups to donut chart data format
+  const transformAgeGroupsToDonutData = (ageGroups: AgeGroup[]) => {
+    const colors = [
+      '#3B82F6', // blue-500
+      '#10B981', // emerald-500
+      '#F59E0B', // amber-500
+      '#EF4444', // red-500
+      '#8B5CF6', // violet-500
+      '#F97316', // orange-500
+      '#06B6D4', // cyan-500
+      '#84CC16'  // lime-500
+    ]
+
+    return ageGroups.map((group, index) => ({
+      name: group.range,
+      value: group.percentage,
+      color: colors[index % colors.length],
+      count: group.count
+    }))
+  }
+
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchDemographicData()
@@ -422,36 +444,16 @@ export function DemographicInsights() {
       {/* Demographics Charts */}
       {demographicData && (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Age Distribution</CardTitle>
-              <CardDescription>Interactive breakdown by age groups</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {demographicData.ageGroups.length > 0 ? (
-                <div className="space-y-3">
-                  {demographicData.ageGroups.map((group, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded border">
-                      <span className="font-medium">{group.range}</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-blue-500 h-2 rounded-full" 
-                            style={{ width: `${group.percentage}%` }} 
-                          />
-                        </div>
-                        <span className="text-sm min-w-[40px]">{group.percentage.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No age distribution data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Interactive Age Distribution Donut Chart */}
+          <div className="md:col-span-1">
+            <InteractiveDonutChart
+              isAuthorityContext={true}
+              showCityWideData={true}
+              period={selectedPeriod}
+              breakdown="age"
+              className="h-full"
+            />
+          </div>
 
           <Card>
             <CardHeader>
