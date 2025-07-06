@@ -18,6 +18,7 @@ import {
   TrendingDown
 } from "lucide-react"
 import { InteractiveDonutChart } from "@/components/charts/interactive-donut-chart"
+import { InteractiveMap } from "@/components/charts/interactive-map"
 
 // TypeScript interfaces for live data
 interface AgeGroup {
@@ -455,36 +456,15 @@ export function DemographicInsights() {
             />
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Visitor Origins</CardTitle>
-              <CardDescription>Geographic distribution of visitors</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {demographicData.originData.length > 0 ? (
-                <div className="space-y-3">
-                  {demographicData.originData.slice(0, 6).map((origin, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded border">
-                      <span className="font-medium">{origin.region}</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-green-500 h-2 rounded-full" 
-                            style={{ width: `${origin.percentage}%` }} 
-                          />
-                        </div>
-                        <span className="text-sm min-w-[40px]">{origin.percentage.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No origin data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Interactive Visitor Origins Map */}
+          <div className="md:col-span-1">
+            <InteractiveMap
+              isAuthorityContext={true}
+              showCityWideData={true}
+              period={selectedPeriod}
+              className="h-full"
+            />
+          </div>
         </div>
       )}
 

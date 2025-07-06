@@ -794,13 +794,53 @@ const getCityDemographics = async (req, res) => {
       demographics.gender = genderBreakdown
     }
 
-    // Location breakdown (by postcode)
+    // Location breakdown (by postcode converted to countries)
     if (breakdown === 'location' || breakdown === 'all') {
+      const getCountryFromPostcode = (postcode) => {
+        if (!postcode) return 'Unknown'
+        
+        // Australian postcodes (4 digits)
+        if (/^\d{4}$/.test(postcode)) return 'Australia'
+        
+        // US ZIP codes (5 digits or 5+4)
+        if (/^\d{5}(-\d{4})?$/.test(postcode)) return 'United States'
+        
+        // UK postcodes (alphanumeric)
+        if (/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i.test(postcode)) return 'United Kingdom'
+        
+        // Canadian postal codes (A1A 1A1)
+        if (/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(postcode)) return 'Canada'
+        
+        // German postal codes (5 digits)
+        if (/^[0-9]{5}$/.test(postcode) && postcode.startsWith('0') || postcode.startsWith('1') || postcode.startsWith('2') || postcode.startsWith('3') || postcode.startsWith('4') || postcode.startsWith('5') || postcode.startsWith('6') || postcode.startsWith('7') || postcode.startsWith('8') || postcode.startsWith('9')) {
+          // More specific German postcode validation
+          const num = parseInt(postcode)
+          if (num >= 1067 && num <= 99998) return 'Germany'
+        }
+        
+        // French postal codes (5 digits starting with 0-9)
+        if (/^[0-9]{5}$/.test(postcode)) {
+          const num = parseInt(postcode)
+          if (num >= 1000 && num <= 98799) return 'France'
+        }
+        
+        // Japan postal codes (3-4 or 7 digits)
+        if (/^\d{3}-?\d{4}$/.test(postcode)) return 'Japan'
+        
+        // Netherlands postal codes (4 digits + 2 letters)
+        if (/^\d{4}\s?[A-Z]{2}$/i.test(postcode)) return 'Netherlands'
+        
+        // Default fallback - try to categorize by pattern
+        if (/^\d{4}$/.test(postcode)) return 'Australia' // Assume 4-digit is Australian
+        if (/^\d{5}$/.test(postcode)) return 'United States' // Assume 5-digit is US
+        
+        return 'Other'
+      }
+
       const locationBreakdown = visits.reduce((acc, visit) => {
         const postcode = visit.visitor.postcode || 'Unknown'
-        // Group by first part of postcode for privacy
-        const region = postcode.split(' ')[0] || 'Unknown'
-        acc[region] = (acc[region] || 0) + 1
+        const country = getCountryFromPostcode(postcode)
+        acc[country] = (acc[country] || 0) + 1
         return acc
       }, {})
       demographics.location = locationBreakdown
