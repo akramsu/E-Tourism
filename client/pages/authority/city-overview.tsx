@@ -827,3 +827,5 @@ export function CityOverview() {
     </div>
   )
 }
+
+export default CityOverview
