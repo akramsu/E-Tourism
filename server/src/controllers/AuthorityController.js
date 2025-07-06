@@ -534,7 +534,7 @@ const getCityRevenue = async (req, res) => {
         peakMonth: 'March 2024',
         topPerformer: { name: 'N/A', revenue: 0 },
         growthRate: 0,
-        breakdown: {}
+        breakdown: []
       }
     })
   }
