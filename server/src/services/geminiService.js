@@ -34,18 +34,22 @@ class GeminiService {
         return this.generateFallbackPredictiveData(options)
       }
 
-      console.log('🤖 Generating AI-powered predictive analytics with real data...')
+      console.log(`🤖 Generating AI-powered predictive analytics for ${period} with real data...`)
 
       const prompt = this.buildPredictiveAnalyticsPrompt(historicalData, options)
+      console.log(`📝 Prompt length: ${prompt.length} characters`)
       
       const result = await this.model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
       
+      console.log(`✅ AI response received, length: ${text.length} characters`)
+      
       // Parse the structured response
       return this.parsePredictiveResponse(text, options)
     } catch (error) {
-      console.error('Error generating predictive analytics:', error.message)
+      console.error('❌ Error generating predictive analytics:', error.message)
+      console.error('Full error:', error)
       console.log('🔄 Falling back to default predictive data')
       // Return fallback data instead of throwing error
       return this.generateFallbackPredictiveData(options)
@@ -106,28 +110,75 @@ class GeminiService {
   buildPredictiveAnalyticsPrompt(data, options) {
     const { period, forecastHorizon } = options
     
+    // Period-specific analysis instructions
+    const periodInstructions = {
+      'week': 'Focus on short-term daily patterns, weekend vs weekday trends, and immediate booking patterns. Analyze hourly/daily fluctuations. Provide week-specific insights.',
+      'month': 'Analyze monthly trends, seasonal effects, and holiday impacts. Focus on mid-term planning and monthly revenue cycles. Provide month-specific insights.',
+      'quarter': 'Focus on quarterly business cycles, seasonal tourism patterns, and strategic planning metrics. Emphasize 3-month trend analysis. Provide quarter-specific insights.',
+      'year': 'Analyze annual patterns, long-term growth trends, economic cycles, and year-over-year comparisons. Focus on strategic insights. Provide yearly planning insights.'
+    }
+
+    // Period-specific metrics adjustments
+    const periodMetrics = {
+      'week': {
+        growthRange: '2-8%',
+        visitorRange: '5000-20000',
+        insights: 'daily operations and short-term optimization'
+      },
+      'month': {
+        growthRange: '5-15%', 
+        visitorRange: '12000-30000',
+        insights: 'monthly planning and seasonal preparation'
+      },
+      'quarter': {
+        growthRange: '8-25%',
+        visitorRange: '25000-60000', 
+        insights: 'quarterly strategy and long-term trends'
+      },
+      'year': {
+        growthRange: '10-40%',
+        visitorRange: '50000-150000',
+        insights: 'annual planning and strategic decisions'
+      }
+    }
+
+    const currentDate = new Date().toISOString().split('T')[0]
+    const metrics = periodMetrics[period] || periodMetrics['month']
+    
     return `
-As a tourism analytics expert, analyze the following historical tourism data and generate predictive analytics:
+As a tourism analytics expert, analyze the following historical tourism data and generate predictive analytics SPECIFICALLY FOR ${period.toUpperCase()} ANALYSIS:
+
+ANALYSIS CONTEXT:
+- Current Date: ${currentDate}
+- Analysis Period: ${period} 
+- Forecast Horizon: ${forecastHorizon} months
+- Target Metrics: ${metrics.insights}
+- Expected Growth Range: ${metrics.growthRange}
+- Expected Visitor Range: ${metrics.visitorRange}
+
+PERIOD-SPECIFIC REQUIREMENTS:
+${periodInstructions[period] || periodInstructions['month']}
 
 HISTORICAL DATA:
 ${JSON.stringify(data, null, 2)}
 
-ANALYSIS REQUIREMENTS:
-- Period: ${period}
-- Forecast Horizon: ${forecastHorizon} months
-- Include seasonal patterns
-- Include growth trends
-- Generate realistic, optimistic, and pessimistic scenarios
+CRITICAL INSTRUCTIONS:
+- Generate predictions that are UNIQUELY RELEVANT to ${period} analysis timeframe
+- Use growth rates within ${metrics.growthRange} range
+- Use visitor forecasts within ${metrics.visitorRange} range  
+- Create insights that are ACTIONABLE for ${period} planning
+- Ensure ALL predictions vary meaningfully based on ${period} context
+- Make trend factors specific to ${period} decision-making needs
 
 Please provide a JSON response with the following structure:
 {
   "forecastMetrics": {
-    "nextMonthVisitors": number,
+    "nextMonthVisitors": number (within ${metrics.visitorRange}),
     "nextMonthRevenue": number,
     "quarterlyRevenue": number,
     "seasonalIndex": number (0.5-2.0),
     "accuracyScore": number (85-98),
-    "growthRate": number (percentage)
+    "growthRate": number (within ${metrics.growthRange})
   },
   "revenueScenarios": [
     {
@@ -148,13 +199,23 @@ Please provide a JSON response with the following structure:
     }
   ],
   "insights": {
-    "keyPredictions": ["prediction1", "prediction2", "prediction3"],
-    "riskFactors": ["risk1", "risk2"],
-    "opportunities": ["opportunity1", "opportunity2"]
+    "keyPredictions": [
+      "Prediction SPECIFIC to ${period} analysis and planning",
+      "Trend prediction RELEVANT for ${period} timeframe",
+      "Forecast insight ACTIONABLE for ${period} decisions"
+    ],
+    "riskFactors": [
+      "Risk factor SPECIFIC to ${period} timeframe", 
+      "Challenge RELEVANT for ${period} planning"
+    ],
+    "opportunities": [
+      "Opportunity ALIGNED with ${period} strategy",
+      "Growth potential for ${period} execution"
+    ]
   }
 }
 
-Base your analysis on tourism patterns, seasonal variations, and data trends. Ensure all numbers are realistic and based on the provided historical data.
+MANDATORY: All numbers, predictions, and insights must be DISTINCTLY DIFFERENT for each period type (week/month/quarter/year). Use the period context to generate meaningfully different results.
 `
   }
 

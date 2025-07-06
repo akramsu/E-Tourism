@@ -1,5 +1,6 @@
 // Authority Controller - Updated with error handling for frontend compatibility
 const { prisma } = require('../config/database')
+const { Prisma } = require('@prisma/client')
 const { hashPassword, comparePassword } = require('../utils/auth')
 const geminiService = require('../services/geminiService')
 
@@ -2483,9 +2484,18 @@ const getPredictiveAnalytics = async (req, res) => {
       forecastPeriod = 6 
     } = req.query
 
-    // Get historical data for analysis
+    // Get historical data for analysis based on selected period
     const { startDate, endDate } = getDateRange(period)
     const forecastHorizon = parseInt(forecastPeriod)
+
+    // Calculate appropriate historical range based on period
+    let historicalMonths = 12; // Default for month
+    if (period === 'week') historicalMonths = 3;
+    else if (period === 'quarter') historicalMonths = 24;
+    else if (period === 'year') historicalMonths = 36;
+
+    // Dynamic historical start date based on period
+    const historicalStartDate = new Date(Date.now() - historicalMonths * 30 * 24 * 60 * 60 * 1000);
 
     // Fetch comprehensive historical data
     const [
@@ -2495,12 +2505,12 @@ const getPredictiveAnalytics = async (req, res) => {
       demographicData,
       seasonalData
     ] = await Promise.all([
-      // Visit trends over time
+      // Visit trends over time - adjusted for period
       prisma.visit.groupBy({
         by: ['visitDate'],
         where: {
           visitDate: {
-            gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last year
+            gte: historicalStartDate,
             lte: endDate
           }
         },
@@ -2509,7 +2519,7 @@ const getPredictiveAnalytics = async (req, res) => {
         orderBy: { visitDate: 'asc' }
       }),
 
-      // Revenue by month for the last year
+      // Revenue by month - adjusted for period
       prisma.$queryRaw`
         SELECT 
           DATE_FORMAT(visitDate, '%Y-%m') as month,
@@ -2517,7 +2527,7 @@ const getPredictiveAnalytics = async (req, res) => {
           SUM(COALESCE(amount, 0)) as revenue,
           COUNT(DISTINCT userId) as uniqueVisitors
         FROM visit 
-        WHERE visitDate >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+        WHERE visitDate >= DATE_SUB(NOW(), INTERVAL ${Prisma.raw(historicalMonths.toString())} MONTH)
         GROUP BY DATE_FORMAT(visitDate, '%Y-%m')
         ORDER BY month ASC
       `,
@@ -2567,14 +2577,14 @@ const getPredictiveAnalytics = async (req, res) => {
         _count: { id: true }
       }),
 
-      // Seasonal patterns (last 2 years for better seasonality analysis)
+      // Seasonal patterns - adjusted for period
       prisma.$queryRaw`
         SELECT 
           MONTH(visitDate) as month,
           COUNT(*) as visits,
           SUM(COALESCE(amount, 0)) as revenue
         FROM visit 
-        WHERE visitDate >= DATE_SUB(NOW(), INTERVAL 24 MONTH)
+        WHERE visitDate >= DATE_SUB(NOW(), INTERVAL ${Prisma.raw(historicalMonths.toString())} MONTH)
         GROUP BY MONTH(visitDate)
         ORDER BY month ASC
       `

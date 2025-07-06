@@ -84,6 +84,8 @@ export default function PredictiveAnalytics() {
       setIsLoading(true)
       setError(null)
 
+      console.log(`🔄 Fetching predictive data for period: ${selectedPeriod}, horizon: ${forecastHorizon}`)
+
       // Fetch predictive analytics data from authority API
       const [predictiveResponse, accuracyResponse] = await Promise.all([
         authorityApi.getPredictiveAnalytics({
@@ -100,6 +102,14 @@ export default function PredictiveAnalytics() {
         const data = predictiveResponse.data
         const accuracyData = accuracyResponse.success ? accuracyResponse.data : null
 
+        console.log(`✅ Received AI data for ${selectedPeriod}:`, {
+          trendFactorsCount: data.trendFactors?.length || 0,
+          revenueScenarios: data.revenueScenarios?.length || 0,
+          visitorScenarios: data.visitorScenarios?.length || 0,
+          hasInsights: !!data.insights,
+          metadata: data.metadata
+        })
+
         // Transform API response to match our interface
         const transformedData: PredictiveData = {
           forecastMetrics: {
@@ -107,23 +117,27 @@ export default function PredictiveAnalytics() {
             nextMonthRevenue: data.forecastMetrics?.nextMonthRevenue || 0,
             quarterlyRevenue: data.forecastMetrics?.quarterlyRevenue || 0,
             seasonalIndex: data.forecastMetrics?.seasonalIndex || 1.0,
-            accuracyScore: accuracyData?.overall || 94.2,
+            accuracyScore: data.forecastMetrics?.accuracyScore || accuracyData?.overall || 0,
             growthRate: data.forecastMetrics?.growthRate || 0
           },
-          revenueScenarios: data.revenueScenarios?.map((scenario: any) => ({
-            month: scenario.month,
-            optimistic: scenario.optimistic,
-            realistic: scenario.realistic,
-            pessimistic: scenario.pessimistic,
-            confidence: scenario.confidence || 85
-          })) || [],
-          visitorScenarios: data.visitorScenarios?.map((scenario: any) => ({
-            month: scenario.month,
-            optimistic: scenario.optimistic,
-            realistic: scenario.realistic,
-            pessimistic: scenario.pessimistic,
-            confidence: scenario.confidence || 85
-          })) || [],
+          revenueScenarios: (data.revenueScenarios && Array.isArray(data.revenueScenarios) && data.revenueScenarios.length > 0)
+            ? data.revenueScenarios.map((scenario: any) => ({
+                month: scenario.month,
+                optimistic: scenario.optimistic,
+                realistic: scenario.realistic,
+                pessimistic: scenario.pessimistic,
+                confidence: scenario.confidence || 85
+              }))
+            : [],
+          visitorScenarios: (data.visitorScenarios && Array.isArray(data.visitorScenarios) && data.visitorScenarios.length > 0)
+            ? data.visitorScenarios.map((scenario: any) => ({
+                month: scenario.month,
+                optimistic: scenario.optimistic,
+                realistic: scenario.realistic,
+                pessimistic: scenario.pessimistic,
+                confidence: scenario.confidence || 85
+              }))
+            : [],
           trendFactors: (data.trendFactors && Array.isArray(data.trendFactors) && data.trendFactors.length > 0) 
             ? data.trendFactors.map((factor: any) => ({
                 factor: factor.factor, // Use factor.factor instead of factor.name
@@ -163,10 +177,10 @@ export default function PredictiveAnalytics() {
                 }
               ],
           modelAccuracy: {
-            overall: accuracyData?.overall || 94.2,
-            visitorAccuracy: accuracyData?.visitorAccuracy || 93.8,
-            revenueAccuracy: accuracyData?.revenueAccuracy || 94.6,
-            trend: accuracyData?.trend || 'improving'
+            overall: data.modelAccuracy?.overall || accuracyData?.overall || 0,
+            visitorAccuracy: data.modelAccuracy?.visitorAccuracy || accuracyData?.visitorAccuracy || 0,
+            revenueAccuracy: data.modelAccuracy?.revenueAccuracy || accuracyData?.revenueAccuracy || 0,
+            trend: data.modelAccuracy?.trend || accuracyData?.trend || 'stable'
           },
           insights: {
             keyPredictions: (data.insights?.keyPredictions && Array.isArray(data.insights.keyPredictions) && data.insights.keyPredictions.length > 0)
@@ -267,7 +281,7 @@ export default function PredictiveAnalytics() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Predictive Analytics</h1>
           <p className="text-sm text-muted-foreground">
-            AI-powered forecasts and tourism trend analysis
+            AI-powered forecasts and tourism trend analysis • Period: {selectedPeriod} • Horizon: {forecastHorizon} months
           </p>
         </div>
         
