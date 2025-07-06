@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth</title>
+</head>
+<body>
+    <h1>Test Authentication</h1>
+    <button onclick="setAuth()">Set Auth Token</button>
+    <button onclick="testAPI()">Test API</button>
+    <button onclick="goToPredictive()">Go to Predictive Analytics</button>
+    <div id="result"></div>
+
+    <script>
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcwLCJlbWFpbCI6InRlc3QuYXV0aG9yaXR5QHRvdXJlYXNlLmNvbSIsInJvbGUiOiJBVVRIT1JJVFkiLCJpYXQiOjE3NTE4MjA0MTksImV4cCI6MTc1MTgyNDAxOX0.8GfpABcdFbSp6guS32C2W5nq1ZE7yPiig8sSb7dLy8g';
+        
+        function setAuth() {
+            localStorage.setItem('authToken', JWT_TOKEN);
+            localStorage.setItem('user', JSON.stringify({
+                id: 70,
+                email: 'test.authority@tourease.com',
+                role: {roleName: 'AUTHORITY'}
+            }));
+            document.getElementById('result').innerHTML = 'Auth token set!';
+        }
+        
+        async function testAPI() {
+            try {
+                const response = await fetch('http://localhost:5003/api/authority/predictive-analytics', {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        function goToPredictive() {
+            setAuth();
+            window.location.href = '/authority/predictive-analytics';
+        }
+    </script>
+</body>
+</html>

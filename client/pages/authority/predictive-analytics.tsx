@@ -124,42 +124,44 @@ export default function PredictiveAnalytics() {
             pessimistic: scenario.pessimistic,
             confidence: scenario.confidence || 85
           })) || [],
-          trendFactors: data.trendFactors?.map((factor: any) => ({
-            factor: factor.name,
-            impact: factor.impact,
-            description: factor.description,
-            expectedChange: factor.expectedChange,
-            category: factor.category
-          })) || [
-            {
-              factor: "Weather Impact",
-              impact: "positive" as const,
-              description: "Favorable weather conditions expected to increase visitors by 15%",
-              expectedChange: 15,
-              category: "weather" as const
-            },
-            {
-              factor: "Event Calendar", 
-              impact: "positive" as const,
-              description: "3 major events scheduled, potential 25% visitor spike",
-              expectedChange: 25,
-              category: "events" as const
-            },
-            {
-              factor: "Economic Indicators",
-              impact: "positive" as const,
-              description: "Strong economic outlook supporting tourism growth",
-              expectedChange: 8,
-              category: "economic" as const
-            },
-            {
-              factor: "Seasonal Patterns",
-              impact: "positive" as const,
-              description: "Peak season approaching, 40% increase expected",
-              expectedChange: 40,
-              category: "seasonal" as const
-            }
-          ],
+          trendFactors: (data.trendFactors && Array.isArray(data.trendFactors) && data.trendFactors.length > 0) 
+            ? data.trendFactors.map((factor: any) => ({
+                factor: factor.factor, // Use factor.factor instead of factor.name
+                impact: factor.impact,
+                description: factor.description,
+                expectedChange: factor.expectedChange,
+                category: factor.category
+              }))
+            : [
+                {
+                  factor: "Weather Impact",
+                  impact: "positive" as const,
+                  description: "Favorable weather conditions expected to increase visitors by 15%",
+                  expectedChange: 15,
+                  category: "weather" as const
+                },
+                {
+                  factor: "Event Calendar", 
+                  impact: "positive" as const,
+                  description: "3 major events scheduled, potential 25% visitor spike",
+                  expectedChange: 25,
+                  category: "events" as const
+                },
+                {
+                  factor: "Economic Indicators",
+                  impact: "positive" as const,
+                  description: "Strong economic outlook supporting tourism growth",
+                  expectedChange: 8,
+                  category: "economic" as const
+                },
+                {
+                  factor: "Seasonal Patterns",
+                  impact: "positive" as const,
+                  description: "Peak season approaching, 40% increase expected",
+                  expectedChange: 40,
+                  category: "seasonal" as const
+                }
+              ],
           modelAccuracy: {
             overall: accuracyData?.overall || 94.2,
             visitorAccuracy: accuracyData?.visitorAccuracy || 93.8,
@@ -167,19 +169,25 @@ export default function PredictiveAnalytics() {
             trend: accuracyData?.trend || 'improving'
           },
           insights: {
-            keyPredictions: data.insights?.keyPredictions || [
-              "Tourism growth expected to accelerate in next quarter",
-              "Revenue projections show 15% increase over previous year",
-              "Peak season demand will exceed capacity by 8%"
-            ],
-            riskFactors: data.insights?.riskFactors || [
-              "Weather dependency remains high",
-              "Economic uncertainty may impact international visitors"
-            ],
-            opportunities: data.insights?.opportunities || [
-              "Digital marketing initiatives showing strong ROI",
-              "New attraction categories gaining traction"
-            ]
+            keyPredictions: (data.insights?.keyPredictions && Array.isArray(data.insights.keyPredictions) && data.insights.keyPredictions.length > 0)
+              ? data.insights.keyPredictions
+              : [
+                  "Tourism growth expected to accelerate in next quarter",
+                  "Revenue projections show 15% increase over previous year",
+                  "Peak season demand will exceed capacity by 8%"
+                ],
+            riskFactors: (data.insights?.riskFactors && Array.isArray(data.insights.riskFactors) && data.insights.riskFactors.length > 0)
+              ? data.insights.riskFactors
+              : [
+                  "Weather dependency remains high",
+                  "Economic uncertainty may impact international visitors"
+                ],
+            opportunities: (data.insights?.opportunities && Array.isArray(data.insights.opportunities) && data.insights.opportunities.length > 0)
+              ? data.insights.opportunities
+              : [
+                  "Digital marketing initiatives showing strong ROI",
+                  "New attraction categories gaining traction"
+                ]
           }
         }
 

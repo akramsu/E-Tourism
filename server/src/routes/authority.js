@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const AuthorityController = require('../controllers/AuthorityController')
+const AuthorityController = require('../controllers/authorityController')
 const { authenticate, authorize } = require('../middleware/auth')
 
 // Apply authentication and authority role check to all routes
@@ -125,6 +125,25 @@ router.delete('/reports/:id', AuthorityController.deleteReport)
 
 // Get predictive analytics
 router.get('/predictive-analytics', AuthorityController.getPredictiveAnalytics)
+
+// Test endpoint for Gemini (temporary - remove in production)
+router.get('/test-gemini', async (req, res) => {
+  try {
+    const geminiService = require('../services/geminiService')
+    const testData = {
+      visitTrends: [{ _count: { id: 10 }, _sum: { amount: 500 } }],
+      monthlyMetrics: [{ month: '2025-07', visits: 100, revenue: 5000, uniqueVisitors: 80 }],
+      attractionPerformance: [{ name: 'Test Attraction', category: 'Museum', rating: 4.5 }],
+      demographics: [{ gender: 'male', _count: { id: 50 } }],
+      seasonalPatterns: [{ month: 7, visits: 120, revenue: 6000 }]
+    }
+    
+    const result = await geminiService.generatePredictiveAnalytics(testData, { period: 'month', forecastHorizon: 6 })
+    res.json({ success: true, data: result })
+  } catch (error) {
+    res.json({ success: false, error: error.message })
+  }
+})
 
 // Get forecast accuracy metrics
 router.get('/forecast-accuracy', AuthorityController.getForecastAccuracy)
