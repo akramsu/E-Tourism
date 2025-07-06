@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id       Int      @id @default(autoincrement())
+  roleName RoleType @unique
+  users    User[]   @relation("UserToRole")
+
+  @@map("roles")
+}
+
+model User {
+  id               Int                @id @default(autoincrement())
+  username         String             @unique
+  password         String
+  email            String             @unique
+  phoneNumber      String?
+  birthDate        DateTime?
+  postcode         String?
+  gender           String?
+  roleId           Int
+  createdDate      DateTime           @default(now())
+  profilePicture   String?            @db.LongText
+  alerts           Alerts[]           @relation("UserToAlerts")
+  attractions      Attraction[]       @relation("UserToAttraction")
+  predictiveModels PredictiveModels[] @relation("UserToPredictiveModels")
+  reports          Reports[]          @relation("UserToReports")
+  role             Role               @relation("UserToRole", fields: [roleId], references: [id])
+  visits           Visit[]            @relation("UserToVisit")
+
+  @@index([roleId], map: "user_roleId_fkey")
+  @@map("user")
+}
+
+model Attraction {
+  id               Int                @id @default(autoincrement())
+  name             String
+  description      String?            @db.Text
+  address          String
+  category         String
+  userId           Int
+  createdDate      DateTime           @default(now())
+  latitude         Float?
+  longitude        Float?
+  openingHours     String?
+  rating           Float?             @default(0)
+  price            Decimal?           @db.Decimal(10, 2)
+  user             User               @relation("UserToAttraction", fields: [userId], references: [id])
+  images           AttractionImage[]  @relation("AttractionToImage")
+  predictiveModels PredictiveModels[] @relation("AttractionToPredictiveModels")
+  reports          Reports[]          @relation("AttractionToReports")
+  visits           Visit[]            @relation("AttractionToVisit")
+
+  @@index([userId], map: "attraction_userId_fkey")
+  @@map("attraction")
+}
+
+model AttractionImage {
+  id           Int        @id @default(autoincrement())
+  attractionId Int
+  imageUrl     String
+  attraction   Attraction @relation("AttractionToImage", fields: [attractionId], references: [id], onDelete: Cascade)
+
+  @@index([attractionId], map: "attraction_images_attractionId_fkey")
+  @@map("attraction_images")
+}
+
+model Visit {
+  id              Int        @id @default(autoincrement())
+  attractionId    Int
+  visitDate       DateTime
+  amount          Decimal?   @db.Decimal(10, 2)
+  createdDate     DateTime   @default(now())
+  duration        Int?
+  groupId         String?
+  visitorFeedback String?    @db.Text
+  rating          Float?
+  userId          Int
+  attraction      Attraction @relation("AttractionToVisit", fields: [attractionId], references: [id])
+  visitor         User       @relation("UserToVisit", fields: [userId], references: [id])
+
+  @@index([attractionId], map: "visit_attractionId_fkey")
+  @@index([userId], map: "visit_userId_fkey")
+  @@map("visit")
+}
+
+model Reports {
+  id            Int         @id @default(autoincrement())
+  reportType    String
+  generatedDate DateTime    @default(now())
+  authorityId   Int
+  reportData    String      @db.LongText
+  attractionId  Int?
+  dateRange     String
+  description   String?     @db.Text
+  reportTitle   String
+  attraction    Attraction? @relation("AttractionToReports", fields: [attractionId], references: [id])
+  authority     User        @relation("UserToReports", fields: [authorityId], references: [id])
+
+  @@index([attractionId], map: "reports_attractionId_fkey")
+  @@index([authorityId], map: "reports_authorityId_fkey")
+  @@map("reports")
+}
+
+model PredictiveModels {
+  id             Int         @id @default(autoincrement())
+  predictionType String
+  predictedValue Float
+  generatedDate  DateTime    @default(now())
+  modelData      String      @db.LongText
+  createdById    Int
+  attractionId   Int?
+  attraction     Attraction? @relation("AttractionToPredictiveModels", fields: [attractionId], references: [id])
+  createdBy      User        @relation("UserToPredictiveModels", fields: [createdById], references: [id])
+
+  @@index([attractionId], map: "predictive_models_attractionId_fkey")
+  @@index([createdById], map: "predictive_models_createdById_fkey")
+  @@map("predictive_models")
+}
+
+model Alerts {
+  id            Int      @id @default(autoincrement())
+  alertType     String
+  alertMessage  String   @db.Text
+  alertData     String?  @db.Text
+  triggeredAt   DateTime @default(now())
+  triggeredById Int
+  alertResolved Boolean  @default(false)
+  triggeredBy   User     @relation("UserToAlerts", fields: [triggeredById], references: [id])
+
+  @@index([triggeredById], map: "alerts_triggeredById_fkey")
+  @@map("alerts")
+}
+
+enum RoleType {
+  AUTHORITY
+  OWNER
+  TOURIST
+}
