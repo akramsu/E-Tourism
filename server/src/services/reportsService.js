@@ -236,16 +236,34 @@ class ReportsService {
    */
   async generateAIAnalysis(tourismData, reportType, dateRange) {
     try {
-      const prompt = this.buildReportPrompt(tourismData, reportType, dateRange)
+      console.log('🤖 Starting AI analysis generation...')
+      console.log('📊 Tourism data:', JSON.stringify(tourismData, null, 2))
       
+      if (!this.geminiService || !this.geminiService.model) {
+        console.log('⚠️ Gemini service not available, using fallback')
+        return this.generateBasicAnalysis(tourismData, reportType)
+      }
+
+      const prompt = this.buildReportPrompt(tourismData, reportType, dateRange)
+      console.log('📝 Generated prompt length:', prompt.length)
+      console.log('📝 Prompt preview:', prompt.substring(0, 200) + '...')
+      
+      console.log('🔄 Calling Gemini API...')
       const result = await this.geminiService.model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
       
-      return this.parseAIResponse(text)
+      console.log('✅ Gemini response received, length:', text.length)
+      console.log('📝 Raw AI response:', text)
+      
+      const parsedResponse = this.parseAIResponse(text)
+      console.log('✅ Parsed AI response:', JSON.stringify(parsedResponse, null, 2))
+      
+      return parsedResponse
       
     } catch (error) {
-      console.error('Error generating AI analysis:', error)
+      console.error('❌ Error generating AI analysis:', error.message)
+      console.error('Full error:', error)
       // Return basic analysis as fallback
       return this.generateBasicAnalysis(tourismData, reportType)
     }
@@ -258,39 +276,45 @@ class ReportsService {
     const dataStr = JSON.stringify(tourismData, null, 2)
     
     return `
-You are a tourism analytics expert. Generate a comprehensive ${reportType} report based on the following data for ${dateRange}.
+You are a senior tourism analytics consultant with expertise in data-driven insights. Analyze the following tourism data for ${dateRange} and generate a comprehensive ${reportType} report.
 
 TOURISM DATA:
 ${dataStr}
 
-Please provide a detailed analysis in the following JSON format:
+ANALYSIS REQUIREMENTS:
+1. Examine visitor patterns, revenue trends, and performance metrics
+2. Identify specific growth opportunities and challenges
+3. Provide quantitative insights with percentages and comparisons
+4. Consider seasonal factors, demographic trends, and market dynamics
+5. Generate actionable recommendations for tourism authorities
+
+Please provide your analysis in this exact JSON format:
 {
-  "summary": "Brief executive summary (2-3 sentences)",
+  "summary": "Executive summary highlighting the most critical insights and overall performance for the ${dateRange} period. Include specific numbers and percentages.",
   "keyFindings": [
-    "Key finding 1",
-    "Key finding 2", 
-    "Key finding 3"
+    "Data-driven finding with specific metrics (e.g., 'Visitor numbers increased by X% compared to previous period')",
+    "Revenue or performance insight with concrete numbers",
+    "Trend analysis with quantified changes",
+    "Market or demographic pattern with specific data points",
+    "Operational insight based on the data provided"
   ],
   "insights": [
-    "Insight 1 with specific data points",
-    "Insight 2 with trends analysis",
-    "Insight 3 with performance metrics"
+    "Deep analytical insight about visitor behavior patterns with supporting data",
+    "Revenue generation analysis with performance indicators and trends",
+    "Seasonal or temporal patterns identified in the data with specific examples",
+    "Demographic or geographic insights derived from visitor data analysis",
+    "Performance benchmarking insight comparing different attractions or time periods"
   ],
   "recommendations": [
-    "Actionable recommendation 1",
-    "Strategic recommendation 2",
-    "Operational recommendation 3"
+    "Strategic recommendation for tourism growth based on identified opportunities",
+    "Operational improvement suggestion supported by data insights",
+    "Marketing or promotional recommendation targeting specific visitor segments",
+    "Infrastructure or capacity planning recommendation based on demand patterns",
+    "Revenue optimization strategy based on pricing and demand analysis"
   ]
 }
 
-Focus on:
-- Specific numbers and percentages
-- Trends and patterns
-- Comparative analysis
-- Actionable insights
-- Strategic recommendations
-
-Ensure all findings are data-driven and include specific metrics where possible.
+IMPORTANT: Ensure all findings include specific numbers, percentages, or quantitative measures from the provided data. Make insights actionable and directly tied to the data analysis.
 `
   }
 

@@ -89,7 +89,7 @@ export const aiInsightsApi = {
     apiClient.get<ApiResponse<any[]>>(`/api/alerts?resolved=false&limit=${limit}`),
   
   getReports: (limit = 5) => 
-    apiClient.get<ApiResponse<any[]>>(`/api/reports?reportType=recommendation&limit=${limit}`)
+    apiClient.get<ApiResponse<any[]>>(`/api/authority/reports?reportType=recommendation&limit=${limit}`)
 }
 
 // Specific API functions for alert management
