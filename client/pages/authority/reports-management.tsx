@@ -103,7 +103,7 @@ export default function ReportsManagement() {
     dateFrom: "",
     dateTo: "",
     search: "",
-    sortBy: "date" as 'date' | 'type' | 'title',
+    sortBy: "generatedDate" as 'generatedDate' | 'reportType' | 'reportTitle',
     sortOrder: "desc" as 'asc' | 'desc'
   })
   
@@ -121,6 +121,8 @@ export default function ReportsManagement() {
       setLoading(true)
       setError(null)
 
+      console.log('🔄 Fetching reports data with filters:', filters)
+
       const [reportsResponse, templatesResponse, statsResponse, scheduledResponse] = await Promise.all([
         authorityApi.getReports({
           limit: 50,
@@ -134,6 +136,13 @@ export default function ReportsManagement() {
         authorityApi.getReportStats(),
         authorityApi.getScheduledReports()
       ])
+
+      console.log('✅ API responses received:', {
+        reports: reportsResponse.success,
+        templates: templatesResponse.success,
+        stats: statsResponse.success,
+        scheduled: scheduledResponse.success
+      })
 
       if (reportsResponse.success && reportsResponse.data) {
         setReports(reportsResponse.data)
@@ -153,7 +162,9 @@ export default function ReportsManagement() {
 
     } catch (err) {
       console.error("Error fetching reports data:", err)
-      setError(err instanceof Error ? err.message : "Failed to load reports data")
+      const errorMessage = err instanceof Error ? err.message : "Failed to load reports data"
+      console.error("Detailed error:", errorMessage)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -393,12 +404,12 @@ export default function ReportsManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label>Report Type</Label>
-                  <Select value={filters.reportType} onValueChange={(value) => handleFilterChange("reportType", value)}>
+                  <Select value={filters.reportType || "all"} onValueChange={(value) => handleFilterChange("reportType", value === "all" ? "" : value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="visitor_analysis">Visitor Analysis</SelectItem>
                       <SelectItem value="revenue_report">Revenue Report</SelectItem>
                       <SelectItem value="attraction_performance">Attraction Performance</SelectItem>
@@ -431,9 +442,9 @@ export default function ReportsManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="type">Type</SelectItem>
-                      <SelectItem value="title">Title</SelectItem>
+                      <SelectItem value="generatedDate">Date</SelectItem>
+                      <SelectItem value="reportType">Type</SelectItem>
+                      <SelectItem value="reportTitle">Title</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

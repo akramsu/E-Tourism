@@ -88,25 +88,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         setIsLoading(true)
         const userRole = user.role.roleName.toLowerCase()
         
-        // Get notifications and alerts
-        const [notificationsResponse, alertsResponse] = await Promise.all([
-          alertsApi.getAlerts({ resolved: false, limit: 50 }),
-          alertsApi.getAlerts({ limit: 100 })
-        ])
-        
         let stats: SidebarStats = {
-          unreadNotifications: notificationsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0,
-          activeAlerts: alertsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0,
+          unreadNotifications: 0,
+          activeAlerts: 0,
           pendingReports: 0,
           recentActivity: 0,
+        }
+
+        // Get notifications and alerts (with fallback if API doesn't exist)
+        try {
+          const [notificationsResponse, alertsResponse] = await Promise.all([
+            alertsApi.getAlerts({ resolved: false, limit: 50 }).catch(() => ({ data: [] })),
+            alertsApi.getAlerts({ limit: 100 }).catch(() => ({ data: [] }))
+          ])
+          
+          stats.unreadNotifications = notificationsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0
+          stats.activeAlerts = alertsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0
+        } catch (error) {
+          console.log('Alerts API not available, using fallback values')
+          // Fallback values for alerts
+          stats.unreadNotifications = 0
+          stats.activeAlerts = 0
         }
 
         if (userRole === 'authority') {
           // Get authority-specific stats
           const [reportsResponse, cityMetricsResponse, attractionsResponse] = await Promise.all([
-            authorityApi.getReports({ limit: 10 }),
-            authorityApi.getCityMetrics({ period: 'week' }),
-            authorityApi.getAllAttractions({ limit: 100 })
+            authorityApi.getReports({ limit: 10 }).catch(() => ({ data: [] })),
+            authorityApi.getCityMetrics({ period: 'week' }).catch(() => ({ data: null })),
+            authorityApi.getAllAttractions({ limit: 100 }).catch(() => ({ data: [] }))
           ])
           
           stats.pendingReports = reportsResponse.data?.filter((report: any) => report.status === 'pending').length || 0
@@ -115,8 +125,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         } else if (userRole === 'owner') {
           // Get owner-specific stats
           const [attractionResponse, reportsResponse] = await Promise.all([
-            ownerApi.getMyAttraction(),
-            ownerApi.getReports(0, { limit: 10, status: 'pending' })
+            ownerApi.getMyAttraction().catch(() => ({ data: null })),
+            ownerApi.getReports(0, { limit: 10, status: 'pending' }).catch(() => ({ data: [] }))
           ])
           
           stats.attractionStatus = attractionResponse.data?.status || 'inactive'

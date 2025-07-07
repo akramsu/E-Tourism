@@ -84,17 +84,25 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
         setIsLoading(true)
         const userRole = user.role.roleName.toLowerCase()
         
-        // Get notifications and alerts
-        const [notificationsResponse, alertsResponse] = await Promise.all([
-          alertsApi.getAlerts({ resolved: false, limit: 50 }),
-          alertsApi.getAlerts({ limit: 100 })
-        ])
-        
+        // Get notifications and alerts with fallback
         let stats: SidebarStats = {
-          unreadNotifications: notificationsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0,
-          activeAlerts: alertsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0,
+          unreadNotifications: 0,
+          activeAlerts: 0,
           pendingReports: 0,
           recentActivity: 0,
+        }
+
+        try {
+          const [notificationsResponse, alertsResponse] = await Promise.all([
+            alertsApi.getAlerts({ resolved: false, limit: 50 }),
+            alertsApi.getAlerts({ limit: 100 })
+          ])
+          
+          stats.unreadNotifications = notificationsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0
+          stats.activeAlerts = alertsResponse.data?.filter((alert: any) => !alert.alertResolved).length || 0
+        } catch (alertError) {
+          console.warn('Alerts API not available, using default values:', alertError)
+          // Keep default values (0) for alerts
         }
 
         if (userRole === 'authority') {

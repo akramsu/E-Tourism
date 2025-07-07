@@ -27,6 +27,8 @@ class ApiClient {
     const url = `${API_BASE_URL}${endpoint}`
     
     try {
+      console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`)
+      
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -35,15 +37,20 @@ class ApiClient {
         }
       })
 
+      console.log(`📡 API Response: ${response.status} ${response.statusText}`)
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        const errorMessage = errorData.message || `HTTP error! status: ${response.status} - ${response.statusText}`
+        console.error(`❌ API Error for ${endpoint}:`, errorMessage)
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
+      console.log(`✅ API Success for ${endpoint}:`, data.success ? 'OK' : 'Failed')
       return data
     } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error)
+      console.error(`❌ API request failed for ${endpoint}:`, error)
       throw error
     }
   }
@@ -976,7 +983,7 @@ export const authorityApi = {
     dateFrom?: string
     dateTo?: string
     attractionId?: number
-    sortBy?: 'date' | 'type' | 'title'
+    sortBy?: string
     sortOrder?: 'asc' | 'desc'
   }) => {
     const searchParams = new URLSearchParams()
