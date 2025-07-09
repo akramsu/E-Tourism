@@ -4,6 +4,7 @@ import type React from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Logo } from "@/components/ui/logo"
 import { useAuth } from "@/contexts/auth-context"
 import { MapPin, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -26,10 +27,8 @@ export const TouristHeader: React.FC<TouristHeaderProps> = ({
       <div className="container mx-auto flex items-center justify-between">
         {/* Left side - Title and branding */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <MapPin className="h-4 w-4 text-white" />
-            </div>
+          <div className="flex items-center gap-3">
+            <Logo size="sm" className="flex-shrink-0" />
             <span className="font-bold text-lg text-slate-900 dark:text-white">TourEase</span>
           </div>
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
@@ -53,7 +52,7 @@ export const TouristHeader: React.FC<TouristHeaderProps> = ({
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="text-sm font-medium text-gray-800 dark:text-white">
-                  {user.name || 'Tourist User'}
+                  {user.username || 'Tourist User'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {user.email}
@@ -62,10 +61,10 @@ export const TouristHeader: React.FC<TouristHeaderProps> = ({
               <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
                 <AvatarImage 
                   src={user.profilePicture || "/placeholder.svg"} 
-                  alt={user.name || "User"} 
+                  alt={user.username || "User"} 
                 />
                 <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                  {(user.name || 'U').charAt(0).toUpperCase()}
+                  {(user.username || 'U').charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <Badge variant="secondary" className="text-xs">

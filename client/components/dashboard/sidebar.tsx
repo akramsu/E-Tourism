@@ -210,9 +210,20 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
       .slice(0, 2)
   }
 
-  const getAvatarUrl = (name: string, role: string) => {
-    const seed = name.toLowerCase().replace(/\s+/g, "")
+  const getAvatarUrl = (user: any) => {
+    // Use the user's uploaded profile picture if available
+    if (user?.profilePicture && user.profilePicture.startsWith('data:image/')) {
+      return user.profilePicture
+    }
+    
+    // Fallback to generated avatar if no profile picture
+    const seed = user?.username?.toLowerCase().replace(/\s+/g, "") || "user"
+    const role = user?.role?.roleName || "TOURIST"
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=${role === "AUTHORITY" ? "3b82f6" : "10b981"}`
+  }
+
+  const hasCustomAvatar = (user: any) => {
+    return user?.profilePicture && user.profilePicture.startsWith('data:image/')
   }
 
   const menuItems = getMenuItemsWithBadges()
@@ -247,23 +258,10 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <div className="flex items-center gap-2">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Logo className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">TourEase</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {user?.role.roleName === "AUTHORITY" ? "Tourism Authority" : "Attraction Management"}
-                  </span>
-                </div>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {/* Logo Section - Centered */}
+        <div className="px-4 py-4 border-b border-sidebar-border flex justify-center">
+          <Logo size="md" showText={false} />
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -379,10 +377,11 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
+                  <Avatar className="h-8 w-8 rounded-full ring-2 ring-primary/10 hover:ring-primary/20 transition-all">
                     <AvatarImage
-                      src={getAvatarUrl(user?.username || "User", user?.role.roleName || "TOURIST")}
+                      src={getAvatarUrl(user)}
                       alt={user?.username || "User"}
+                      className={hasCustomAvatar(user) ? "object-cover" : ""}
                     />
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                       {getInitials(user?.username || "User")}
@@ -404,8 +403,9 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage
-                        src={getAvatarUrl(user?.username || "User", user?.role.roleName || "TOURIST")}
+                        src={getAvatarUrl(user)}
                         alt={user?.username || "User"}
+                        className={hasCustomAvatar(user) ? "object-cover" : ""}
                       />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                         {getInitials(user?.username || "User")}

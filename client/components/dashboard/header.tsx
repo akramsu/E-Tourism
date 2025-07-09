@@ -103,9 +103,15 @@ export function DashboardHeader({ title, subtitle, onProfileClick }: DashboardHe
       .slice(0, 2)
   }
 
-  const getAvatarUrl = (name: string, role: string) => {
+  const getAvatarUrl = (user: any) => {
+    // Use the user's uploaded profile picture if available
+    if (user?.profilePicture && user.profilePicture.startsWith('data:image/')) {
+      return user.profilePicture
+    }
+    
     // Generate a consistent avatar based on name and role
-    const seed = name.toLowerCase().replace(/\s+/g, "")
+    const seed = user?.username?.toLowerCase().replace(/\s+/g, "") || "user"
+    const role = user?.role?.roleName || "TOURIST"
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=${role === "AUTHORITY" ? "3b82f6" : "10b981"}`
   }
 
@@ -214,8 +220,9 @@ export function DashboardHeader({ title, subtitle, onProfileClick }: DashboardHe
               <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                 <Avatar className="h-9 w-9 ring-2 ring-primary/10 hover:ring-primary/20 transition-all">
                   <AvatarImage
-                    src={user?.profilePicture || getAvatarUrl(user?.username || "User", user?.role.roleName || "TOURIST")}
+                    src={getAvatarUrl(user)}
                     alt={user?.username || "User"}
+                    className={user?.profilePicture && user.profilePicture.startsWith('data:image/') ? "object-cover" : ""}
                   />
                   <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-semibold">
                     {getInitials(user?.username || "User")}

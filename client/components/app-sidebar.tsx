@@ -298,9 +298,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       .slice(0, 2)
   }
 
-  const getAvatarUrl = (name: string, role: string) => {
-    const seed = name.toLowerCase().replace(/\s+/g, "")
+  const getAvatarUrl = (user: any) => {
+    // Use the user's uploaded profile picture if available
+    if (user?.profilePicture && user.profilePicture.startsWith('data:image/')) {
+      return user.profilePicture
+    }
+    
+    // Fallback to generated avatar if no profile picture
+    const seed = user?.username?.toLowerCase().replace(/\s+/g, "") || "user"
+    const role = user?.role?.roleName || "TOURIST"
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=${role === "AUTHORITY" ? "3b82f6" : "10b981"}`
+  }
+
+  const hasCustomAvatar = (user: any) => {
+    return user?.profilePicture && user.profilePicture.startsWith('data:image/')
   }
 
   const menuItems = getMenuItemsWithBadges()
@@ -445,8 +456,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage 
-                      src={getAvatarUrl(user?.username || "User", user?.role?.roleName || "TOURIST")} 
-                      alt="User Avatar" 
+                      src={getAvatarUrl(user)} 
+                      alt="User Avatar"
+                      className={hasCustomAvatar(user) ? "object-cover" : ""}
                     />
                     <AvatarFallback className="rounded-lg">
                       {user?.username ? getInitials(user.username) : "U"}

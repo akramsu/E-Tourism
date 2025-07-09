@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Logo } from "@/components/ui/logo"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,10 +135,8 @@ export default function TouristNavigationHeader({ currentPage, onPageChange, onS
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-white" />
-              </div>
+            <div className="flex items-center gap-3">
+              <Logo size="md" className="flex-shrink-0" />
               <span className="font-bold text-xl text-slate-900 dark:text-white">TourEase</span>
             </div>
 
@@ -214,9 +213,9 @@ export default function TouristNavigationHeader({ currentPage, onPageChange, onS
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10 ring-2 ring-blue-500/20 hover:ring-blue-500/40 transition-all">
-                    <AvatarImage src={user?.profilePicture || "/placeholder.svg"} alt={user?.name || "User"} />
+                    <AvatarImage src={user?.profilePicture || "/placeholder.svg"} alt={user?.username || "User"} />
                     <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                      {user?.name?.charAt(0) || "U"}
+                      {user?.username?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -224,7 +223,7 @@ export default function TouristNavigationHeader({ currentPage, onPageChange, onS
               <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user?.name || "Tourist User"}</p>
+                    <p className="text-sm font-medium leading-none">{user?.username || "Tourist User"}</p>
                     <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                     <Badge variant="secondary" className="w-fit mt-1">
                       Tourist
