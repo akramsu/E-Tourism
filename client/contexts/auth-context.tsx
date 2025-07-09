@@ -80,14 +80,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchRoles = async () => {
     try {
+      console.log('Fetching roles from:', `${API_BASE_URL}/api/auth/roles`)
       const response = await fetch(`${API_BASE_URL}/api/auth/roles`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
+      console.log('Roles fetched successfully:', data)
       
       if (data.success) {
         setRoles(data.data)
+      } else {
+        console.error('Failed to fetch roles - API returned error:', data.message)
       }
     } catch (err) {
       console.error('Failed to fetch roles:', err)
+      console.error('API Base URL:', API_BASE_URL)
+      
+      // Set a user-friendly error message
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check if the backend is running.')
+      }
     }
   }
 
@@ -196,6 +211,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setError('Authentication token not found. Please log in again.')
+        setLoading(false)
+        return false
+      }
+
+      console.log('Making profile update request to:', `${API_BASE_URL}/api/auth/profile`)
+      console.log('Profile data being sent:', { ...profileData, profileImage: profileData.profileImage ? `base64 data (${Math.round(profileData.profileImage.length / 1024)}KB)` : 'no image' })
+
       const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -205,20 +230,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(profileData),
       })
       
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      if (!response.ok) {
+        // Handle different HTTP error codes
+        if (response.status === 401) {
+          setError('Authentication expired. Please log in again.')
+          // Optionally clear token and redirect to login
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          setUser(null)
+          return false
+        } else if (response.status === 413) {
+          setError('Profile image is too large. Please choose a smaller image.')
+          return false
+        } else if (response.status === 503) {
+          setError('Database connection timeout. Please try again with a smaller image.')
+          return false
+        } else if (response.status >= 500) {
+          setError('Server error. Please try again in a moment.')
+          return false
+        }
+      }
+
       const data = await response.json()
+      console.log('Response data:', data)
       
       if (data.success && data.user) {
         localStorage.setItem('user', JSON.stringify(data.user))
         setUser(data.user)
         setIsNewUser(false) // Clear new user flag after profile completion
+        console.log('Profile updated successfully')
         return true
       } else {
-        setError(data.message || 'Profile update failed')
+        const errorMessage = data.message || `Profile update failed: ${response.status} ${response.statusText}`
+        console.error('Profile update failed:', errorMessage)
+        setError(errorMessage)
         return false
       }
     } catch (err) {
       console.error('Profile update error:', err)
-      setError('An error occurred while updating profile')
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while updating profile'
+      setError(errorMessage)
       return false
     } finally {
       setLoading(false)

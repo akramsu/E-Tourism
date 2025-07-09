@@ -2,6 +2,20 @@ const { PrismaClient } = require('@prisma/client')
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  },
+  // Add connection pooling configuration
+  __internal: {
+    engine: {
+      config: {
+        poolTimeout: 60000, // 60 seconds
+        idleTimeout: 300000 // 5 minutes
+      }
+    }
+  }
 })
 
 // Test database connection

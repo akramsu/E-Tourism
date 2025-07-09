@@ -193,6 +193,16 @@ const updateProfile = async (req, res) => {
     const { username, phoneNumber, birthDate, postcode, gender, profileImage } = req.body
     const userId = req.user.id
 
+    console.log('Profile update request received:', {
+      userId,
+      username,
+      phoneNumber,
+      birthDate,
+      postcode,
+      gender,
+      profileImage: profileImage ? 'base64 data present' : 'no image'
+    })
+
     // Check if username is taken by another user
     if (username && username !== req.user.username) {
       const existingUser = await prisma.user.findFirst({
@@ -214,18 +224,95 @@ const updateProfile = async (req, res) => {
     const updateData = {}
     if (username) updateData.username = username.toLowerCase()
     if (phoneNumber) updateData.phoneNumber = phoneNumber
-    if (birthDate) updateData.birthDate = new Date(birthDate)
+    if (birthDate) {
+      // Handle birthDate properly - ensure it's a valid date
+      const parsedDate = new Date(birthDate)
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid birth date format'
+        })
+      }
+      updateData.birthDate = parsedDate
+    }
     if (postcode) updateData.postcode = postcode
     if (gender) updateData.gender = gender
-    if (profileImage) updateData.profilePicture = profileImage // Store as profilePicture in DB
-
-    // Update user
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      include: {
-        role: true
+    
+    if (profileImage) {
+      console.log('Processing profile image:', {
+        length: profileImage.length,
+        isBase64: profileImage.startsWith('data:'),
+        preview: profileImage.substring(0, 50) + '...'
+      })
+      
+      // Validate that it's a proper base64 image
+      if (!profileImage.startsWith('data:image/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image format. Please upload a valid image file.'
+        })
       }
+      
+      // Validate image size (conservative limit for database stability)
+      if (profileImage.length > 2000000) { // ~1.5MB in base64 for reliable storage
+        return res.status(400).json({
+          success: false,
+          message: 'Profile image is too large after compression. Please choose a smaller or simpler image.'
+        })
+      }
+      
+      // Store as profilePicture in DB (this maps to the Prisma schema field)
+      updateData.profilePicture = profileImage
+      console.log('Profile image will be saved:', {
+        sizeKB: Math.round(profileImage.length / 1024),
+        format: profileImage.substring(0, 30)
+      })
+    }
+
+    console.log('Update data prepared:', { 
+      ...Object.fromEntries(
+        Object.entries(updateData).map(([key, value]) => [
+          key, 
+          key === 'profilePicture' ? 
+            `base64 data (${Math.round(value.length / 1024)}KB)` : 
+            value
+        ])
+      )
+    })
+
+    // Update user with retry logic for connection issues
+    let updatedUser
+    let retryCount = 0
+    const maxRetries = 3
+
+    while (retryCount < maxRetries) {
+      try {
+        updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          include: {
+            role: true
+          }
+        })
+        break // Success, exit retry loop
+      } catch (retryError) {
+        retryCount++
+        console.log(`Database operation failed (attempt ${retryCount}/${maxRetries}):`, retryError.code, retryError.message)
+        
+        if (retryCount >= maxRetries) {
+          throw retryError // Re-throw the error if all retries failed
+        }
+        
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 500 * retryCount))
+      }
+    }
+
+    console.log('User updated successfully:', { 
+      id: updatedUser.id, 
+      username: updatedUser.username,
+      hasProfilePicture: !!updatedUser.profilePicture,
+      profilePictureSize: updatedUser.profilePicture ? `${Math.round(updatedUser.profilePicture.length / 1024)}KB` : 'none'
     })
 
     // Remove password from response
@@ -239,9 +326,36 @@ const updateProfile = async (req, res) => {
 
   } catch (error) {
     console.error('Update profile error:', error)
+    
+    // Handle specific database errors
+    if (error.code === 'P1017') {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection timeout. Please try again with a smaller image.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      })
+    }
+    
+    if (error.code === 'P2002') {
+      return res.status(400).json({
+        success: false,
+        message: 'Username already taken. Please choose a different username.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      })
+    }
+    
+    if (error.message && error.message.includes('too large')) {
+      return res.status(413).json({
+        success: false,
+        message: 'Profile image is too large. Please choose a smaller image.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      })
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Internal server error during profile update'
+      message: 'Internal server error during profile update',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     })
   }
 }

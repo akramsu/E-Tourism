@@ -21,12 +21,16 @@ const PORT = process.env.PORT || 5003
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: [
+    process.env.CLIENT_URL || 'http://localhost:3000',
+    'http://localhost:3001', // Allow Next.js dev server on alternate port
+    'http://localhost:3002'  // Allow additional ports if needed
+  ],
   credentials: true
 }))
 
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(express.json({ limit: '15mb' }))
+app.use(express.urlencoded({ extended: true, limit: '15mb' }))
 
 // Routes
 app.get('/api/health', (req, res) => {
