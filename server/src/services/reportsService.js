@@ -25,7 +25,7 @@ class ReportsService {
         includeCharts = true
       } = reportConfig
 
-      console.log(`🤖 Generating ${reportType} report with AI analysis...`)
+      console.log(`Generating ${reportType} report with AI analysis...`)
 
       // Fetch tourism data based on report type and parameters
       const tourismData = await this.fetchTourismData(reportType, dateRange, attractionId)
@@ -48,7 +48,7 @@ class ReportsService {
 
       // Generate AI-powered analysis if enabled
       if (includeAIAnalysis && this.geminiService) {
-        console.log('📊 Generating AI analysis for report...')
+        console.log('Generating AI analysis for report...')
         const aiAnalysis = await this.generateAIAnalysis(tourismData, reportType, dateRange)
         
         reportData.summary = aiAnalysis.summary
@@ -82,11 +82,11 @@ class ReportsService {
         }
       })
 
-      console.log(`✅ Report generated successfully: ID ${savedReport.id}`)
+      console.log(`Report generated successfully: ID ${savedReport.id}`)
       return savedReport
 
     } catch (error) {
-      console.error('❌ Error generating report:', error)
+      console.error('Error generating report:', error)
       throw error
     }
   }
@@ -236,8 +236,8 @@ class ReportsService {
    */
   async generateAIAnalysis(tourismData, reportType, dateRange) {
     try {
-      console.log('🤖 Starting AI analysis generation...')
-      console.log('📊 Tourism data:', JSON.stringify(tourismData, null, 2))
+      console.log('Starting AI analysis generation...')
+      console.log('Tourism data:', JSON.stringify(tourismData, null, 2))
       
       if (!this.geminiService || !this.geminiService.model) {
         console.log('⚠️ Gemini service not available, using fallback')
@@ -245,19 +245,19 @@ class ReportsService {
       }
 
       const prompt = this.buildReportPrompt(tourismData, reportType, dateRange)
-      console.log('📝 Generated prompt length:', prompt.length)
-      console.log('📝 Prompt preview:', prompt.substring(0, 200) + '...')
+      console.log('Generated prompt length:', prompt.length)
+      console.log('Prompt preview:', prompt.substring(0, 200) + '...')
       
       console.log('🔄 Calling Gemini API...')
       const result = await this.geminiService.model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
       
-      console.log('✅ Gemini response received, length:', text.length)
-      console.log('📝 Raw AI response:', text)
+      console.log('Gemini response received, length:', text.length)
+      console.log('Raw AI response:', text)
       
       const parsedResponse = this.parseAIResponse(text)
-      console.log('✅ Parsed AI response:', JSON.stringify(parsedResponse, null, 2))
+      console.log('Parsed AI response:', JSON.stringify(parsedResponse, null, 2))
       
       return parsedResponse
       
@@ -276,7 +276,8 @@ class ReportsService {
     const dataStr = JSON.stringify(tourismData, null, 2)
     
     return `
-You are a senior tourism analytics consultant with expertise in data-driven insights. Analyze the following tourism data for ${dateRange} and generate a comprehensive ${reportType} report.
+You are a senior tourism analytics consultant with expertise in data-driven insights. 
+Analyze the following tourism data for ${dateRange} and generate a comprehensive ${reportType} report.
 
 TOURISM DATA:
 ${dataStr}
@@ -478,7 +479,7 @@ IMPORTANT: Ensure all findings include specific numbers, percentages, or quantit
    */
   async generatePDFReport(report, reportData) {
     try {
-      console.log(`📄 Generating PDF for report: ${report.reportTitle}`)
+      console.log(`Generating PDF for report: ${report.reportTitle}`)
       
       return new Promise((resolve, reject) => {
         const doc = new PDFDocument({
@@ -490,7 +491,7 @@ IMPORTANT: Ensure all findings include specific numbers, percentages, or quantit
         doc.on('data', buffers.push.bind(buffers))
         doc.on('end', () => {
           const pdfData = Buffer.concat(buffers)
-          console.log(`✅ PDF generated successfully, size: ${pdfData.length} bytes`)
+          console.log(`PDF generated successfully, size: ${pdfData.length} bytes`)
           resolve(pdfData)
         })
         doc.on('error', reject)

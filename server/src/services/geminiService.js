@@ -3,11 +3,11 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 class GeminiService {
   constructor() {
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === '') {
-      console.log('⚠️ Warning: GEMINI_API_KEY not configured. Predictive analytics will use fallback data.')
+      console.log('Warning: GEMINI_API_KEY not configured. Predictive analytics will use fallback data.')
       this.genAI = null
       this.model = null
     } else {
-      console.log('✅ Gemini AI initialized successfully')
+      console.log('Gemini AI initialized successfully')
       this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
     }
@@ -30,27 +30,27 @@ class GeminiService {
 
       // Check if API key is available
       if (!this.model) {
-        console.log('⚠️ Gemini API not available, using fallback data')
+        console.log('Gemini API not available, using fallback data')
         return this.generateFallbackPredictiveData(options)
       }
 
-      console.log(`🤖 Generating AI-powered predictive analytics for ${period} with real data...`)
+      console.log(`Generating AI-powered predictive analytics for ${period} with real data...`)
 
       const prompt = this.buildPredictiveAnalyticsPrompt(historicalData, options)
-      console.log(`📝 Prompt length: ${prompt.length} characters`)
+      console.log(`Prompt length: ${prompt.length} characters`)
       
       const result = await this.model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
       
-      console.log(`✅ AI response received, length: ${text.length} characters`)
+      console.log(`AI response received, length: ${text.length} characters`)
       
       // Parse the structured response
       return this.parsePredictiveResponse(text, options)
     } catch (error) {
       console.error('❌ Error generating predictive analytics:', error.message)
       console.error('Full error:', error)
-      console.log('🔄 Falling back to default predictive data')
+      console.log('Falling back to default predictive data')
       // Return fallback data instead of throwing error
       return this.generateFallbackPredictiveData(options)
     }
@@ -146,7 +146,8 @@ class GeminiService {
     const metrics = periodMetrics[period] || periodMetrics['month']
     
     return `
-As a tourism analytics expert, analyze the following historical tourism data and generate predictive analytics SPECIFICALLY FOR ${period.toUpperCase()} ANALYSIS:
+As a tourism analytics expert, analyze the following historical tourism data and generate predictive analytics 
+SPECIFICALLY FOR ${period.toUpperCase()} ANALYSIS:
 
 ANALYSIS CONTEXT:
 - Current Date: ${currentDate}
@@ -363,37 +364,37 @@ Consider seasonal patterns, economic factors, events, weather, and marketing imp
   /**
    * Generate fallback predictive data if AI fails
    */
-  generateFallbackPredictiveData(options) {
-    const { forecastHorizon = 6 } = options
+  // generateFallbackPredictiveData(options) {
+  //   const { forecastHorizon = 6 } = options
     
-    return {
-      forecastMetrics: {
-        nextMonthVisitors: 15000,
-        nextMonthRevenue: 280000,
-        quarterlyRevenue: 850000,
-        seasonalIndex: 1.15,
-        accuracyScore: 94.2,
-        growthRate: 8.5
-      },
-      revenueScenarios: this.generateDefaultScenarios('revenue', forecastHorizon),
-      visitorScenarios: this.generateDefaultScenarios('visitors', forecastHorizon),
-      insights: {
-        keyPredictions: [
-          "Tourism growth expected to continue based on historical trends",
-          "Seasonal patterns suggest strong performance in upcoming months",
-          "Digital engagement initiatives showing positive impact"
-        ],
-        riskFactors: [
-          "Weather dependency remains a significant factor",
-          "Economic uncertainty may impact visitor spending"
-        ],
-        opportunities: [
-          "Growing interest in sustainable tourism options",
-          "Digital marketing channels showing strong conversion rates"
-        ]
-      }
-    }
-  }
+  //   return {
+  //     forecastMetrics: {
+  //       nextMonthVisitors: 15000,
+  //       nextMonthRevenue: 280000,
+  //       quarterlyRevenue: 850000,
+  //       seasonalIndex: 1.15,
+  //       accuracyScore: 94.2,
+  //       growthRate: 8.5
+  //     },
+  //     revenueScenarios: this.generateDefaultScenarios('revenue', forecastHorizon),
+  //     visitorScenarios: this.generateDefaultScenarios('visitors', forecastHorizon),
+  //     insights: {
+  //       keyPredictions: [
+  //         "Tourism growth expected to continue based on historical trends",
+  //         "Seasonal patterns suggest strong performance in upcoming months",
+  //         "Digital engagement initiatives showing positive impact"
+  //       ],
+  //       riskFactors: [
+  //         "Weather dependency remains a significant factor",
+  //         "Economic uncertainty may impact visitor spending"
+  //       ],
+  //       opportunities: [
+  //         "Growing interest in sustainable tourism options",
+  //         "Digital marketing channels showing strong conversion rates"
+  //       ]
+  //     }
+  //   }
+  // }
 
   /**
    * Generate default scenarios for forecasting
@@ -426,78 +427,78 @@ Consider seasonal patterns, economic factors, events, weather, and marketing imp
   /**
    * Generate fallback insights
    */
-  generateFallbackInsights() {
-    return {
-      keyInsights: [
-        "Visitor engagement remains strong across all attraction categories",
-        "Revenue per visitor showing consistent upward trend",
-        "Digital marketing initiatives contributing to growth"
-      ],
-      recommendations: [
-        "Focus on peak season capacity optimization",
-        "Enhance digital visitor experience platforms",
-        "Develop weather-resilient attraction options"
-      ],
-      alerts: [
-        "Monitor capacity during upcoming peak season",
-        "Weather patterns may affect outdoor attractions"
-      ],
-      performance: {
-        strengths: [
-          "Strong visitor satisfaction ratings",
-          "Consistent revenue growth patterns"
-        ],
-        weaknesses: [
-          "Weather dependency for outdoor attractions",
-          "Limited off-season activity options"
-        ],
-        improvements: [
-          "Diversify attraction portfolio",
-          "Enhance visitor data collection systems"
-        ]
-      }
-    }
-  }
+  // generateFallbackInsights() {
+  //   return {
+  //     keyInsights: [
+  //       "Visitor engagement remains strong across all attraction categories",
+  //       "Revenue per visitor showing consistent upward trend",
+  //       "Digital marketing initiatives contributing to growth"
+  //     ],
+  //     recommendations: [
+  //       "Focus on peak season capacity optimization",
+  //       "Enhance digital visitor experience platforms",
+  //       "Develop weather-resilient attraction options"
+  //     ],
+  //     alerts: [
+  //       "Monitor capacity during upcoming peak season",
+  //       "Weather patterns may affect outdoor attractions"
+  //     ],
+  //     performance: {
+  //       strengths: [
+  //         "Strong visitor satisfaction ratings",
+  //         "Consistent revenue growth patterns"
+  //       ],
+  //       weaknesses: [
+  //         "Weather dependency for outdoor attractions",
+  //         "Limited off-season activity options"
+  //       ],
+  //       improvements: [
+  //         "Diversify attraction portfolio",
+  //         "Enhance visitor data collection systems"
+  //       ]
+  //     }
+  //   }
+  // }
 
   /**
    * Generate fallback trend factors
    */
-  generateFallbackTrendFactors() {
-    return [
-      {
-        factor: "Seasonal Tourism Patterns",
-        impact: "positive",
-        description: "Favorable season approaching with expected 25% increase in visitors",
-        expectedChange: 25,
-        category: "seasonal",
-        confidence: 90
-      },
-      {
-        factor: "Economic Indicators",
-        impact: "positive", 
-        description: "Strong economic outlook supporting discretionary travel spending",
-        expectedChange: 12,
-        category: "economic",
-        confidence: 85
-      },
-      {
-        factor: "Weather Conditions",
-        impact: "positive",
-        description: "Favorable weather forecasts expected to boost outdoor attraction visits",
-        expectedChange: 18,
-        category: "weather",
-        confidence: 75
-      },
-      {
-        factor: "Marketing Campaigns",
-        impact: "positive",
-        description: "Digital marketing initiatives showing strong ROI and visitor acquisition",
-        expectedChange: 15,
-        category: "marketing",
-        confidence: 88
-      }
-    ]
-  }
+//   generateFallbackTrendFactors() {
+//     return [
+//       {
+//         factor: "Seasonal Tourism Patterns",
+//         impact: "positive",
+//         description: "Favorable season approaching with expected 25% increase in visitors",
+//         expectedChange: 25,
+//         category: "seasonal",
+//         confidence: 90
+//       },
+//       {
+//         factor: "Economic Indicators",
+//         impact: "positive", 
+//         description: "Strong economic outlook supporting discretionary travel spending",
+//         expectedChange: 12,
+//         category: "economic",
+//         confidence: 85
+//       },
+//       {
+//         factor: "Weather Conditions",
+//         impact: "positive",
+//         description: "Favorable weather forecasts expected to boost outdoor attraction visits",
+//         expectedChange: 18,
+//         category: "weather",
+//         confidence: 75
+//       },
+//       {
+//         factor: "Marketing Campaigns",
+//         impact: "positive",
+//         description: "Digital marketing initiatives showing strong ROI and visitor acquisition",
+//         expectedChange: 15,
+//         category: "marketing",
+//         confidence: 88
+//       }
+//     ]
+//   }
 }
 
 module.exports = new GeminiService()
