@@ -92,7 +92,7 @@ const generateFallbackMetricData = (metricType: string): any => {
     totalAttractions: baseData.activeAttractions.value,
     avgSatisfaction: baseData.avgSatisfaction.value,
     topAttraction: {
-      name: baseData.topAttraction.value,
+      name: 'Central Museum',
       rating: baseData.rating.value,
       visits: baseData.totalVisitors.value
     },
@@ -209,6 +209,11 @@ export function MetricCard({
           
           if (response.success && response.data) {
             data = response.data
+            console.log('MetricCard: Extracted data for', metricType, ':', {
+              topAttraction: data.topAttraction,
+              topPerformer: data.topPerformer,
+              dataKeys: Object.keys(data)
+            })
           }
         } catch (apiError) {
           console.log('MetricCard: Authority API failed for', metricType, ', using fallback')
@@ -258,7 +263,18 @@ export function MetricCard({
       case 'avgSatisfaction':
         return data.avgSatisfaction || data.averageRating
       case 'topAttraction':
-        return data.topAttraction || data.topPerformer
+        // Handle both topAttraction.name and topPerformer.name structures
+        if (data.topAttraction?.name) {
+          return { value: data.topAttraction.name, change: 0, period: 'month' }
+        } else if (data.topPerformer?.name) {
+          return { value: data.topPerformer.name, change: 0, period: 'month' }
+        } else if (typeof data.topAttraction === 'string') {
+          return { value: data.topAttraction, change: 0, period: 'month' }
+        } else if (typeof data.topPerformer === 'string') {
+          return { value: data.topPerformer, change: 0, period: 'month' }
+        } else {
+          return { value: 'N/A', change: 0, period: 'month' }
+        }
       default:
         return null
     }

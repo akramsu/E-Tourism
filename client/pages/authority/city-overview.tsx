@@ -123,7 +123,19 @@ const processApiDataToCityOverview = (
       peakMonth: revenueAnalysisResponse.data.peakMonth || 'March 2024',
       revenueGrowth: revenueAnalysisResponse.data.growthRate || 0,
       visitorIncrease: visitorTrendsResponse.data.growthRate || 0,
-      topRevenueAttraction: revenueAnalysisResponse.data.topPerformer?.name || 'N/A'
+      topRevenueAttraction: (() => {
+        const topPerformerName = revenueAnalysisResponse.data.topPerformer?.name;
+        const topAttractionName = revenueAnalysisResponse.data.topAttraction?.name;
+        const result = topPerformerName || topAttractionName || 'N/A';
+        console.log('CityOverview: Processing topRevenueAttraction:', {
+          topPerformerName,
+          topAttractionName,
+          result,
+          revenueDataKeys: Object.keys(revenueAnalysisResponse.data || {}),
+          fullTopPerformer: revenueAnalysisResponse.data.topPerformer
+        });
+        return result;
+      })()
     },
     visitorPatterns: {
       busiestDay: visitorTrendsResponse.data.busiestDay || 'Saturday',
@@ -278,6 +290,8 @@ export function CityOverview() {
       
       if (isAuthorityUser) {
         // Fetch multiple data sources in parallel for authenticated authority users
+        console.log('CityOverview: Fetching live data as authority user')
+        
         const [
           cityMetricsResponse,
           categoryPerformanceResponse,
@@ -311,17 +325,31 @@ export function CityOverview() {
         ])
 
         console.log('CityOverview: API responses:', {
-          cityMetrics: cityMetricsResponse,
-          categoryPerformance: categoryPerformanceResponse,
-          tourismInsights: tourismInsightsResponse,
-          revenueAnalysis: revenueAnalysisResponse,
-          visitorTrends: visitorTrendsResponse
+          cityMetrics: { success: cityMetricsResponse.success, hasData: !!cityMetricsResponse.data },
+          categoryPerformance: { success: categoryPerformanceResponse.success, hasData: !!categoryPerformanceResponse.data },
+          tourismInsights: { success: tourismInsightsResponse.success, hasData: !!tourismInsightsResponse.data },
+          revenueAnalysis: { success: revenueAnalysisResponse.success, hasData: !!revenueAnalysisResponse.data, topPerformer: revenueAnalysisResponse.data?.topPerformer },
+          visitorTrends: { success: visitorTrendsResponse.success, hasData: !!visitorTrendsResponse.data }
+        })
+
+        // Debug the revenue analysis response structure
+        console.log('CityOverview: Revenue Analysis Response Data:', {
+          fullData: revenueAnalysisResponse.data,
+          topPerformer: revenueAnalysisResponse.data?.topPerformer,
+          topPerformerName: revenueAnalysisResponse.data?.topPerformer?.name,
+          success: revenueAnalysisResponse.success,
+          hasData: !!revenueAnalysisResponse.data,
+          dataKeys: revenueAnalysisResponse.data ? Object.keys(revenueAnalysisResponse.data) : [],
+          rawResponse: revenueAnalysisResponse
         })
 
         // Check if all responses are successful
-        if (cityMetricsResponse.success && categoryPerformanceResponse.success && 
+        const allSuccessful = cityMetricsResponse.success && categoryPerformanceResponse.success && 
             tourismInsightsResponse.success && revenueAnalysisResponse.success && 
-            visitorTrendsResponse.success) {
+            visitorTrendsResponse.success;
+
+        if (allSuccessful) {
+          console.log('CityOverview: All API calls successful, processing live data')
           
           // Process the actual API data
           const transformedData = processApiDataToCityOverview(
@@ -334,11 +362,70 @@ export function CityOverview() {
           
           setCityData(transformedData)
         } else {
-          console.log('CityOverview: Some API calls failed, using fallback data')
-          throw new Error("Some API calls failed")
+          console.log('CityOverview: Some API calls failed, checking individual responses:')
+          console.log('- cityMetrics:', cityMetricsResponse.success)
+          console.log('- categoryPerformance:', categoryPerformanceResponse.success)
+          console.log('- tourismInsights:', tourismInsightsResponse.success)
+          console.log('- revenueAnalysis:', revenueAnalysisResponse.success)
+          console.log('- visitorTrends:', visitorTrendsResponse.success)
+          
+          // Process data with individual fallbacks for failed responses only
+          const safeResponses = {
+            cityMetrics: cityMetricsResponse.success ? cityMetricsResponse : { data: { totalVisitors: 0, totalRevenue: 0, totalAttractions: 0, averageRating: 0, growthRate: 0, topAttraction: { name: 'N/A', rating: 0, visits: 0 }}},
+            categoryPerformance: categoryPerformanceResponse.success ? categoryPerformanceResponse : { data: { categories: [] }},
+            tourismInsights: tourismInsightsResponse.success ? tourismInsightsResponse : { data: { alerts: [] }},
+            revenueAnalysis: revenueAnalysisResponse.success ? revenueAnalysisResponse : { data: { peakDay: 'Saturday', peakMonth: 'March 2024', growthRate: 0, topPerformer: { name: 'N/A', revenue: 0 }}},
+            visitorTrends: visitorTrendsResponse.success ? visitorTrendsResponse : { data: { busiestDay: 'Saturday', peakHours: '10AM - 2PM', avgDailyVisitors: 0, weeklyDistribution: [], growthRate: 0 }}
+          }
+          
+          console.log('CityOverview: Using safe responses with preserved successful data:', {
+            revenueSuccess: revenueAnalysisResponse.success,
+            revenueTopPerformer: revenueAnalysisResponse.success ? revenueAnalysisResponse.data?.topPerformer : 'fallback used',
+            cityMetricsSuccess: cityMetricsResponse.success,
+            visitorTrendsSuccess: visitorTrendsResponse.success
+          })
+          
+          const transformedData = processApiDataToCityOverview(
+            safeResponses.cityMetrics,
+            safeResponses.categoryPerformance,
+            safeResponses.tourismInsights,
+            safeResponses.revenueAnalysis,
+            safeResponses.visitorTrends
+          )
+          
+          setCityData(transformedData)
+          
+          // Only show error if critical APIs failed
+          if (!revenueAnalysisResponse.success && !cityMetricsResponse.success) {
+            throw new Error("Critical APIs failed, using fallback data")
+          }
+          
+          // Log which APIs succeeded for debugging
+          const failedAPIs = [];
+          if (!cityMetricsResponse.success) failedAPIs.push('cityMetrics');
+          if (!categoryPerformanceResponse.success) failedAPIs.push('categoryPerformance');
+          if (!tourismInsightsResponse.success) failedAPIs.push('tourismInsights');
+          if (!revenueAnalysisResponse.success) failedAPIs.push('revenueAnalysis');
+          if (!visitorTrendsResponse.success) failedAPIs.push('visitorTrends');
+          
+          console.log(`CityOverview: ${failedAPIs.length} APIs failed: ${failedAPIs.join(', ')}, but proceeding with available data`)
         }
       } else {
         console.log('CityOverview: No authenticated authority user, using demo data')
+        // Still try to process any available data if debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Development mode: Attempting to fetch data anyway for debugging...')
+          try {
+            const revenueTestResponse = await authorityApi.getCityRevenue({
+              period: selectedPeriod,
+              breakdown: 'category',
+              includeComparisons: true
+            })
+            console.log('Debug revenue test response:', revenueTestResponse)
+          } catch (debugError) {
+            console.log('Debug API test failed:', debugError)
+          }
+        }
         throw new Error("No authenticated user or not an authority user")
       }
     } catch (err) {
