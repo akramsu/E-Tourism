@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2, Building2, ArrowLeft, Eye, EyeOff, Shield, Zap, Facebook, Chrome } from "lucide-react"
@@ -21,7 +20,7 @@ interface SignInFormProps {
 export function SignInForm({ onBack, onSignUp }: SignInFormProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<"authority" | "owner" | "tourist">("tourist")
+
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
@@ -209,25 +208,6 @@ export function SignInForm({ onBack, onSignUp }: SignInFormProps) {
                       )}
                     </Button>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="text-slate-700 dark:text-slate-200 font-medium">
-                    Account Type
-                  </Label>
-                  <Select value={role} onValueChange={(value: "authority" | "owner" | "tourist") => {
-                    setRole(value)
-                    if (error) setError("")
-                  }}>
-                    <SelectTrigger className="h-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-blue-500 dark:focus:border-blue-400">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="authority">Tourism Authority</SelectItem>
-                      <SelectItem value="owner">Attraction Owner</SelectItem>
-                      <SelectItem value="tourist">Tourist</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="flex items-center justify-between">

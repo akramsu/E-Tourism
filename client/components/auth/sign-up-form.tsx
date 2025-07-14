@@ -33,7 +33,7 @@ export function SignUpForm({ onBack, onSignIn }: SignUpFormProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
-  const [role, setRole] = useState<"authority" | "owner" | "tourist">("tourist")
+  const [role, setRole] = useState<"owner" | "tourist">("tourist")
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -82,7 +82,7 @@ export function SignUpForm({ onBack, onSignIn }: SignUpFormProps) {
 
     try {
       // Convert role to uppercase format expected by backend
-      const roleForBackend = role.toUpperCase() as "AUTHORITY" | "OWNER" | "TOURIST"
+      const roleForBackend = role.toUpperCase() as "OWNER" | "TOURIST"
       const success = await register(name, email, password, roleForBackend)
       
       if (success) {
@@ -272,12 +272,14 @@ export function SignUpForm({ onBack, onSignIn }: SignUpFormProps) {
                   <Label htmlFor="role" className="text-slate-700 dark:text-slate-200 font-medium">
                     Account Type
                   </Label>
-                  <Select value={role} onValueChange={(value: "authority" | "owner" | "tourist") => setRole(value)}>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                    Choose your account type
+                  </p>
+                  <Select value={role} onValueChange={(value: "owner" | "tourist") => setRole(value)}>
                     <SelectTrigger className="h-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="authority">Tourism Authority</SelectItem>
                       <SelectItem value="owner">Attraction Owner</SelectItem>
                       <SelectItem value="tourist">Tourist</SelectItem>
                     </SelectContent>

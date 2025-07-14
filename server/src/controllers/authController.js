@@ -45,6 +45,14 @@ const register = async (req, res) => {
       })
     }
 
+    // Prevent AUTHORITY role self-registration - only allow OWNER and TOURIST
+    if (roleRecord.roleName === 'AUTHORITY') {
+      return res.status(403).json({
+        success: false,
+        message: 'Authority accounts cannot be self-registered. Please contact system administrator.'
+      })
+    }
+
     // Hash password
     const hashedPassword = await hashPassword(password)
 
