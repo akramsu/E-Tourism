@@ -20,7 +20,7 @@ import { DemographicInsights } from "@/pages/authority/demographic-insights"
 import { ReportsManagement } from "@/pages/authority/reports-management"
 import { AlertConfiguration } from "@/pages/authority/alert-configuration"
 import { SearchData } from "@/pages/authority/search-data"
-import { ApplyFilters } from "@/pages/authority/apply-filters"
+import { AIChat } from "@/pages/authority/ai-chat"
 import AuthorityProfile from "@/pages/authority/profile"
 import { PerformanceOverview } from "@/pages/owner/performance-overview"
 import { VisitorAnalysis } from "@/pages/owner/visitor-analysis"
@@ -172,8 +172,8 @@ function AppContent() {
           return <AlertConfiguration />
         case "Search Data":
           return <SearchData />
-        case "Apply Filters":
-          return <ApplyFilters />
+        case "AI Chat":
+          return <AIChat />
         case "Profile":
           return <AuthorityProfile />
         default:

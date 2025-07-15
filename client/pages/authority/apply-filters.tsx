@@ -61,6 +61,11 @@ export function ApplyFilters() {
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // Pagination state
+  const itemsPerPage = 7
+  const [displayedAttractions, setDisplayedAttractions] = useState<Attraction[]>([])
+  const [showLoadMore, setShowLoadMore] = useState(false)
 
   // Fetch filter options and initial data
   useEffect(() => {
@@ -108,6 +113,18 @@ export function ApplyFilters() {
 
     fetchInitialData()
   }, [user?.role?.roleName])
+
+  // Update displayed attractions when filtered results change
+  useEffect(() => {
+    if (filteredResults.length > 0) {
+      const firstPage = filteredResults.slice(0, itemsPerPage)
+      setDisplayedAttractions(firstPage)
+      setShowLoadMore(filteredResults.length > itemsPerPage)
+    } else {
+      setDisplayedAttractions([])
+      setShowLoadMore(false)
+    }
+  }, [filteredResults])
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>
@@ -509,12 +526,12 @@ export function ApplyFilters() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base sm:text-lg">Filtered Results</CardTitle>
                 <CardDescription>
-                  Showing {filteredResults.length} of {allAttractions.length} attractions
+                  Showing {displayedAttractions.length} of {filteredResults.length} attractions
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredResults.map((attraction) => (
+                  {displayedAttractions.map((attraction) => (
                     <div
                       key={attraction.id}
                       className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
@@ -658,6 +675,26 @@ export function ApplyFilters() {
                   <p className="text-xs text-muted-foreground">Unique types</p>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredResults.length > itemsPerPage && (
+            <div className="flex justify-center">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  const nextPage = Math.ceil(displayedAttractions.length / itemsPerPage) + 1
+                  const start = (nextPage - 1) * itemsPerPage
+                  const end = start + itemsPerPage
+                  setDisplayedAttractions((prev) => [...prev, ...filteredResults.slice(start, end)])
+                  setShowLoadMore(end < filteredResults.length)
+                }}
+                className="w-full sm:w-auto"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Load More
+              </Button>
             </div>
           )}
         </div>

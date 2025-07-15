@@ -8,19 +8,19 @@ async function createTestAuthority() {
     console.log('🔍 Checking for existing test authority...')
     
     // Check if authority role exists
-    let authorityRole = await prisma.roles.findFirst({
+    let authorityRole = await prisma.role.findFirst({
       where: { roleName: 'AUTHORITY' }
     })
     
     if (!authorityRole) {
       console.log('📝 Creating AUTHORITY role...')
-      authorityRole = await prisma.roles.create({
+      authorityRole = await prisma.role.create({
         data: { roleName: 'AUTHORITY' }
       })
     }
     
     // Check if test authority user exists
-    const existingUser = await prisma.users.findFirst({
+    const existingUser = await prisma.user.findFirst({
       where: { email: 'authority@test.com' }
     })
     
@@ -32,13 +32,12 @@ async function createTestAuthority() {
     // Create test authority user
     const hashedPassword = await bcrypt.hash('testpass123', 10)
     
-    const testAuthority = await prisma.users.create({
+    const testAuthority = await prisma.user.create({
       data: {
         username: 'testauthority',
         email: 'authority@test.com',
         password: hashedPassword,
-        roleId: authorityRole.id,
-        isEmailVerified: true
+        roleId: authorityRole.id
       },
       include: {
         role: true

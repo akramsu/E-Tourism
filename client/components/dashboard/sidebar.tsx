@@ -14,6 +14,7 @@ import {
   Filter,
   AlertTriangle,
   Activity,
+  Sparkles,
 } from "lucide-react"
 
 import {
@@ -150,6 +151,7 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
         { title: "Demographic Insights", page: "Demographic Insights", icon: Users },
         { title: "Predictive Analytics", page: "Predictive Analytics", icon: TrendingUp },
         { title: "Reports Management", page: "Reports Management", icon: FileText },
+        { title: "Search Database", page: "Search Data", icon: Search },
       ] : 
       [
         { title: "Performance Overview", page: "Performance Overview", icon: Home },
@@ -232,21 +234,16 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
   const getQuickActions = (): MenuItem[] => {
     const actions: MenuItem[] = [
       {
-        title: "Search Attractions",
-        page: "search",
-        icon: Search
-      },
-      {
-        title: "Filter Data", 
-        page: "filter",
-        icon: Filter
+        title: "AI Chat Assistant",
+        page: "AI Chat",
+        icon: Sparkles
       }
     ]
 
-    // Add notifications action with badge
+    // Add alerts action with badge
     actions.push({
       title: "Alerts & Notifications",
-      page: "notifications", 
+      page: "Alert Configuration", 
       icon: sidebarStats.activeAlerts > 0 ? AlertTriangle : Bell,
       badge: sidebarStats.unreadNotifications > 0 ? sidebarStats.unreadNotifications.toString() : undefined,
       badgeVariant: sidebarStats.activeAlerts > 0 ? "destructive" : "default"
@@ -306,8 +303,12 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
               <SidebarMenu>
                 {getQuickActions().map((action) => (
                   <SidebarMenuItem key={action.title}>
-                    <SidebarMenuButton asChild>
-                      <div className="flex items-center gap-3 cursor-pointer">
+                    <SidebarMenuButton 
+                      asChild
+                      className="cursor-pointer"
+                      onClick={() => onPageChange(action.page)}
+                    >
+                      <div className="flex items-center gap-3">
                         <action.icon className="h-4 w-4" />
                         <span>{action.title}</span>
                         {action.badge && (

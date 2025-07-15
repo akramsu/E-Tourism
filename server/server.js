@@ -15,6 +15,7 @@ const dashboardRoutes = require('./src/routes/dashboard.js')
 const visitRoutes = require('./src/routes/visits.js')
 const authorityRoutes = require('./src/routes/authority.js')
 const alertsRoutes = require('./src/routes/alerts.js')
+const predictiveRoutes = require('./src/routes/predictive.js')
 
 const app = express()
 const PORT = process.env.PORT || 5003
@@ -49,6 +50,7 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/visits', visitRoutes)
 app.use('/api/authority', authorityRoutes)
 app.use('/api/alerts', alertsRoutes)
+app.use('/api/predictive', predictiveRoutes)
 
 // Database connection test endpoint
 app.get('/api/database/test', async (req, res) => {

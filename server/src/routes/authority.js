@@ -39,6 +39,19 @@ router.get('/demographics', AuthorityController.getCityDemographics)
 router.get('/tourism-insights', AuthorityController.getTourismInsights)
 
 // ============================================================================
+// PREDICTIVE ANALYTICS
+// ============================================================================
+
+// Get predictive analytics data
+router.get('/predictive-analytics', AuthorityController.getPredictiveAnalytics)
+
+// Get forecast accuracy metrics
+router.get('/forecast-accuracy', AuthorityController.getForecastAccuracy)
+
+// Chat with AI assistant
+router.post('/chat', AuthorityController.chatWithAI)
+
+// ============================================================================
 // ATTRACTIONS MANAGEMENT
 // ============================================================================
 
@@ -120,13 +133,10 @@ router.get('/reports/:id/download', AuthorityController.downloadReport)
 router.delete('/reports/:id', AuthorityController.deleteReport)
 
 // ============================================================================
-// PREDICTIVE ANALYTICS
+// AI CHAT
 // ============================================================================
 
-// Get predictive analytics
-router.get('/predictive-analytics', AuthorityController.getPredictiveAnalytics)
-
-// Test endpoint for Gemini (temporary - remove in production)
+// AI Chat endpoint
 router.get('/test-gemini', async (req, res) => {
   try {
     const geminiService = require('../services/geminiService')
@@ -144,9 +154,6 @@ router.get('/test-gemini', async (req, res) => {
     res.json({ success: false, error: error.message })
   }
 })
-
-// Get forecast accuracy metrics
-router.get('/forecast-accuracy', AuthorityController.getForecastAccuracy)
 
 // ============================================================================
 // PROFILE MANAGEMENT

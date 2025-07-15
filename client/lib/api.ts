@@ -1180,4 +1180,10 @@ export const authorityApi = {
   // Delete account
   deleteAccount: (password: string) =>
     apiClient.delete<ApiResponse<any>>(`/api/authority/profile?password=${encodeURIComponent(password)}`),
+
+  // AI Chat
+  chatWithAI: (chatData: {
+    message: string
+    chatHistory?: Array<{ role: 'user' | 'assistant', content: string }>
+  }) => apiClient.post<ApiResponse<any>>('/api/authority/chat', chatData),
 }
