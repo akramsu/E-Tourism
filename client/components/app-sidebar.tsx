@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Activity,
   Loader2,
+  Plus,
 } from "lucide-react"
 
 import {
@@ -209,7 +210,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       // Owner menu items
       const baseItems = [
         { title: "Performance Overview", url: "#", icon: Home },
-        { title: "Manage Attractions", url: "#", icon: Building2 },
+        { title: "Create Attraction", url: "#", icon: Plus },
+        { title: "Manage Attraction", url: "#", icon: Building2 },
         { title: "Visitor Analysis", url: "#", icon: Users },
         { title: "Forecasts & Planning", url: "#", icon: Calendar },
         { title: "Reports", url: "#", icon: FileText },
@@ -230,7 +232,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               badgeVariant = "default"
             }
             break
-          case "Manage Attractions":
+          case "Manage Attraction":
             if (sidebarStats.attractionStatus === 'pending') {
               badge = "Action"
               badgeVariant = "destructive"
