@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { AuthProvider, useAuth } from "@/contexts/auth-context"
@@ -47,7 +47,14 @@ function AppContent() {
   const [dashboardPage, setDashboardPage] = useState("Dashboard")
   const [selectedAttractionId, setSelectedAttractionId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const { user, needsProfileCompletion } = useAuth()
+  const { user, needsProfileCompletion, needsAttractionCreation, markAttractionCreated } = useAuth()
+
+  // Handle navigation after authentication
+  useEffect(() => {
+    if (user && currentPage !== "dashboard") {
+      setCurrentPage("dashboard")
+    }
+  }, [user, currentPage])
 
   const handleProfileCompleted = () => {
     // After profile completion, proceed to normal flow
@@ -107,7 +114,14 @@ function AppContent() {
     setDashboardPage("Profile")
   }
 
+  const handleProfileComplete = () => {
+    // Profile completion finished - user will automatically proceed to next step
+    // The useAuth context will handle updating needsProfileCompletion state
+  }
+
   const handleAttractionCreated = () => {
+    // Mark attraction creation as complete
+    markAttractionCreated()
     // Attraction created successfully - redirect to performance overview
     setDashboardPage("Performance Overview")
   }
@@ -184,6 +198,8 @@ function AppContent() {
       switch (dashboardPage) {
         case "Performance Overview":
           return <PerformanceOverview />
+        case "Create Attraction":
+          return <CreateAttraction onAttractionCreated={handleAttractionCreated} />
         case "Manage Attraction":
           return <ManageAttraction />
         case "Visitor Analysis":
@@ -242,6 +258,36 @@ function AppContent() {
   }
 
   if (currentPage === "dashboard" && user) {
+    // Handle profile completion for new users
+    if (needsProfileCompletion) {
+      return <CompleteProfile onComplete={handleProfileComplete} />
+    }
+
+    // Handle attraction creation for new owners
+    if (needsAttractionCreation && user.role.roleName === "OWNER") {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-900">
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                  Welcome to TourEase! 🎉
+                </h1>
+                <p className="text-lg text-slate-600 dark:text-slate-300 mb-2">
+                  Let's get started by adding your first attraction
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  You can always add more attractions later from your dashboard
+                </p>
+              </div>
+              <CreateAttraction onAttractionCreated={handleAttractionCreated} />
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
+      )
+    }
+
     // Tourist Interface
     if (user.role.roleName === "TOURIST") {
       return (

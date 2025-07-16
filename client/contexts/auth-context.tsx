@@ -45,6 +45,8 @@ interface AuthContextType {
   error: string | null
   needsProfileCompletion: boolean
   isNewUser: boolean
+  needsAttractionCreation: boolean
+  markAttractionCreated: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isNewUser, setIsNewUser] = useState(false)
+  const [needsAttractionCreation, setNeedsAttractionCreation] = useState(false)
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -178,6 +181,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(data.user))
         setUser(data.user)
         setIsNewUser(true) // Mark as new user for profile completion
+        
+        // If the user is an attraction owner, mark that they need to create their attraction
+        if (role === 'OWNER') {
+          setNeedsAttractionCreation(true)
+        }
+        
         return true
       } else {
         setError(data.message || 'Registration failed')
@@ -341,6 +350,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const markAttractionCreated = () => {
+    setNeedsAttractionCreation(false)
+  }
+
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -368,7 +381,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         error,
         needsProfileCompletion: !!needsProfileCompletion,
-        isNewUser
+        isNewUser,
+        needsAttractionCreation,
+        markAttractionCreated
       }}
     >
       {children}

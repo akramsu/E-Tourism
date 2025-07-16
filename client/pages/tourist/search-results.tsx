@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { touristApi } from "@/lib/api"
 import {
   MapPin,
   Star,
@@ -27,6 +28,8 @@ import {
   Eye,
   Navigation,
   Award,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 
 interface SearchResultsProps {
@@ -62,10 +65,11 @@ interface Attraction {
 export default function SearchResults({ onAttractionSelect, searchQuery }: SearchResultsProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
   const [sortBy, setSortBy] = useState("relevance")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -78,157 +82,58 @@ export default function SearchResults({ onAttractionSelect, searchQuery }: Searc
     sortBy: "relevance",
   })
 
-  // Mock attractions data based on database schema
-  const [attractions, setAttractions] = useState<Attraction[]>([
-    {
-      id: 1,
-      name: "Borobudur Temple",
-      category: "Historical Site",
-      rating: 4.8,
-      reviews: 15420,
-      price: "IDR 50,000",
-      priceValue: 50000,
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Magelang, Central Java",
-      description: "UNESCO World Heritage Site and Buddhist monument with stunning sunrise views",
-      tags: ["UNESCO", "Historical", "Cultural", "Buddhist"],
-      timeToVisit: "2-3 hours",
-      distance: "2.5 km",
-      openNow: true,
-      featured: true,
-      liked: false,
-      latitude: -7.6079,
-      longitude: 110.2038,
-      amenities: ["Parking", "WiFi", "Restaurant", "Gift Shop", "Guided Tours"],
-      openingHours: "06:00 - 18:00",
-      ticketPrice: 50000,
-      capacity: 2000,
-    },
-    {
-      id: 2,
-      name: "Prambanan Temple",
-      category: "Historical Site",
-      rating: 4.7,
-      reviews: 12380,
-      price: "IDR 50,000",
-      priceValue: 50000,
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Magnificent Hindu temple complex with intricate stone carvings",
-      tags: ["Hindu", "Architecture", "Cultural", "UNESCO"],
-      timeToVisit: "2-3 hours",
-      distance: "15 km",
-      openNow: true,
-      featured: true,
-      liked: true,
-      latitude: -7.752,
-      longitude: 110.4915,
-      amenities: ["Parking", "Restaurant", "Museum", "Souvenir Shop"],
-      openingHours: "06:00 - 18:00",
-      ticketPrice: 50000,
-      capacity: 1500,
-    },
-    {
-      id: 3,
-      name: "Taman Sari Water Castle",
-      category: "Palace",
-      rating: 4.5,
-      reviews: 8940,
-      price: "IDR 15,000",
-      priceValue: 15000,
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Former royal garden of Yogyakarta Sultanate with beautiful architecture",
-      tags: ["Royal", "Garden", "Historical", "Architecture"],
-      timeToVisit: "1-2 hours",
-      distance: "5 km",
-      openNow: true,
-      featured: false,
-      liked: false,
-      latitude: -7.8099,
-      longitude: 110.3587,
-      amenities: ["Parking", "Guided Tours", "Photography Spots"],
-      openingHours: "09:00 - 15:00",
-      ticketPrice: 15000,
-      capacity: 800,
-    },
-    {
-      id: 4,
-      name: "Malioboro Street",
-      category: "Cultural District",
-      rating: 4.3,
-      reviews: 22150,
-      price: "Free",
-      priceValue: 0,
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Famous shopping and cultural street with traditional performances",
-      tags: ["Shopping", "Culture", "Street Food", "Entertainment"],
-      timeToVisit: "2-4 hours",
-      distance: "1 km",
-      openNow: true,
-      featured: false,
-      liked: true,
-      latitude: -7.7956,
-      longitude: 110.3695,
-      amenities: ["Shopping", "Street Food", "Entertainment", "ATM"],
-      openingHours: "24 hours",
-      ticketPrice: 0,
-      capacity: 5000,
-    },
-    {
-      id: 5,
-      name: "Mount Merapi",
-      category: "Nature",
-      rating: 4.6,
-      reviews: 9876,
-      price: "IDR 75,000",
-      priceValue: 75000,
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Active volcano with hiking trails and stunning panoramic views",
-      tags: ["Nature", "Adventure", "Hiking", "Volcano"],
-      timeToVisit: "4-6 hours",
-      distance: "25 km",
-      openNow: true,
-      featured: true,
-      liked: false,
-      latitude: -7.5407,
-      longitude: 110.4461,
-      amenities: ["Parking", "Guide Service", "Safety Equipment", "Rest Areas"],
-      openingHours: "05:00 - 17:00",
-      ticketPrice: 75000,
-      capacity: 200,
-    },
-    {
-      id: 6,
-      name: "Parangtritis Beach",
-      category: "Beach",
-      rating: 4.4,
-      reviews: 18750,
-      price: "IDR 10,000",
-      priceValue: 10000,
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Bantul, Yogyakarta",
-      description: "Beautiful black sand beach with legendary stories and sunset views",
-      tags: ["Beach", "Sunset", "Legend", "Photography"],
-      timeToVisit: "2-3 hours",
-      distance: "30 km",
-      openNow: true,
-      featured: false,
-      liked: false,
-      latitude: -8.025,
-      longitude: 110.3294,
-      amenities: ["Parking", "Restaurant", "Beach Activities", "Souvenir Shop"],
-      openingHours: "24 hours",
-      ticketPrice: 10000,
-      capacity: 3000,
-    },
-  ])
+  // Real attractions data from database
+  const [attractions, setAttractions] = useState<Attraction[]>([])
+  const [filteredAttractions, setFilteredAttractions] = useState<Attraction[]>([])
 
-  const [filteredAttractions, setFilteredAttractions] = useState<Attraction[]>(attractions)
+  // Load attractions from database
+  useEffect(() => {
+    const loadAttractions = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const response = await touristApi.getFeaturedAttractions(50)
+        
+        // Transform database data to match component interface
+        const transformedAttractions: Attraction[] = response.data?.map((attraction: any) => ({
+          id: attraction.id,
+          name: attraction.name,
+          category: attraction.category || "General",
+          rating: attraction.rating || 0,
+          reviews: attraction.totalVisits || 0,
+          price: attraction.priceFormatted || "Free",
+          priceValue: attraction.price || 0,
+          image: attraction.images?.[0]?.url || "/placeholder.svg",
+          location: attraction.location || "Unknown",
+          description: attraction.description || "",
+          tags: attraction.tags ? attraction.tags.split(',') : [],
+          timeToVisit: "2-3 hours", // Default value
+          distance: "1 km", // Default value - would need geolocation
+          openNow: true, // Default value - would need hours logic
+          featured: attraction.featured || false,
+          liked: false, // Would need user preferences
+          latitude: attraction.latitude || 0,
+          longitude: attraction.longitude || 0,
+          amenities: ["Parking", "WiFi"], // Default amenities
+          openingHours: attraction.openingHours || "09:00 - 18:00",
+          ticketPrice: attraction.price || 0,
+          capacity: attraction.capacity || 1000,
+        })) || []
+        
+        setAttractions(transformedAttractions)
+      } catch (error) {
+        console.error('Error loading attractions:', error)
+        setError('Failed to load attractions. Please try again.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const categories = ["Historical Site", "Palace", "Cultural District", "Nature", "Beach", "Museum", "Park", "Temple"]
+    loadAttractions()
+  }, [])
+
+  // Dynamic categories based on loaded attractions
+  const categories = Array.from(new Set(attractions.map(a => a.category))).filter(Boolean)
   const features = ["WiFi", "Parking", "Restaurant", "Guided Tours", "Gift Shop", "Wheelchair Accessible"]
 
   // Filter and sort attractions
@@ -576,7 +481,19 @@ export default function SearchResults({ onAttractionSelect, searchQuery }: Searc
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
                 {searchQuery ? `Search Results for "${searchQuery}"` : "Explore Attractions"}
               </h1>
-              <p className="text-slate-600 dark:text-slate-400">{filteredAttractions.length} attractions found</p>
+              {isLoading ? (
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading attractions...</span>
+                </div>
+              ) : error ? (
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
+                </div>
+              ) : (
+                <p className="text-slate-600 dark:text-slate-400">{filteredAttractions.length} attractions found</p>
+              )}
             </div>
 
             {/* View Mode and Sort */}
@@ -692,6 +609,49 @@ export default function SearchResults({ onAttractionSelect, searchQuery }: Searc
           {/* Main Content */}
           <div className="flex-1">
             <Tabs value={viewMode} className="w-full">
+              {/* Error State */}
+              {error && !isLoading && (
+                <div className="text-center py-12">
+                  <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                    Unable to load attractions
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+                  <Button onClick={() => window.location.reload()} variant="outline">
+                    Try Again
+                  </Button>
+                </div>
+              )}
+
+              {/* No Results State */}
+              {!error && !isLoading && filteredAttractions.length === 0 && (
+                <div className="text-center py-12">
+                  <Search className="h-12 w-12 mx-auto text-slate-400 mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                    No attractions found
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-4">
+                    Try adjusting your search criteria or filters
+                  </p>
+                  <Button 
+                    onClick={() => {
+                      setFilters({
+                        categories: [],
+                        priceRange: [0, 200],
+                        rating: 0,
+                        distance: 50,
+                        openNow: false,
+                        features: [],
+                        sortBy: "relevance",
+                      })
+                    }}
+                    variant="outline"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
+
               {/* Grid View */}
               <TabsContent value="grid" className="mt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
