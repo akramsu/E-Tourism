@@ -257,7 +257,7 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
       <SidebarHeader>
         {/* Logo Section - Centered */}
         <div className="px-4 py-4 border-b border-sidebar-border flex justify-center">
-          <Logo size="md" showText={false} />
+          <Logo size="sm" showText={false} />
         </div>
       </SidebarHeader>
 

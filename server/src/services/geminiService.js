@@ -2,12 +2,21 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 class GeminiService {
   constructor() {
+    // Initialize rate limiting properties
+    this.requestCount = 0
+    this.dailyRequestLimit = 15  // Conservative daily limit
+    this.minRequestInterval = 2000  // 2 seconds between requests
+    this.lastRequestTime = 0
+    this.dailyResetTime = new Date()
+    this.dailyResetTime.setTime(Date.now() + 24 * 60 * 60 * 1000) // Next 24 hours
+    
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === '') {
       console.log('Warning: GEMINI_API_KEY not configured. Predictive analytics will use fallback data.')
       this.genAI = null
       this.model = null
     } else {
       console.log('Gemini AI initialized successfully')
+      console.log(`API Key configured: ${process.env.GEMINI_API_KEY.substring(0, 8)}...${process.env.GEMINI_API_KEY.slice(-4)}`)
       this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
     }

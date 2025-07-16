@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const dotenv = require('dotenv')
+const fileUpload = require('express-fileupload')
 
 // Load environment variables first
 dotenv.config()
@@ -32,6 +33,14 @@ app.use(cors({
 
 app.use(express.json({ limit: '15mb' }))
 app.use(express.urlencoded({ extended: true, limit: '15mb' }))
+
+// File upload middleware
+app.use(fileUpload({
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  useTempFiles: true,
+  tempFileDir: '/tmp/',
+  createParentPath: true
+}))
 
 // Routes
 app.get('/api/health', (req, res) => {
