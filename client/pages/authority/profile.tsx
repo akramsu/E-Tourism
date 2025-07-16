@@ -46,13 +46,14 @@ interface AuthorityProfile {
   postcode?: string
   gender?: string
   profilePicture?: string
-  position?: string
-  department?: string
-  bio?: string
   createdDate: string
   role: {
     roleName: string
   }
+  // Static fields for display only (not in database)
+  position?: string
+  department?: string
+  bio?: string
   preferences?: {
     emailNotifications: boolean
     smsNotifications: boolean
@@ -83,7 +84,7 @@ interface ActivityLog {
 }
 
 export default function AuthorityProfile() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -96,9 +97,14 @@ export default function AuthorityProfile() {
   const [uploading, setUploading] = useState(false)
 
   const [formData, setFormData] = useState({
+    // Database fields
     username: "",
     email: "",
     phoneNumber: "",
+    birthDate: "",
+    postcode: "",
+    gender: "",
+    // Static fields (stored locally, not in database)
     position: "",
     department: "",
     bio: "",
@@ -132,24 +138,48 @@ export default function AuthorityProfile() {
 
       if (profileResponse.success && profileResponse.data) {
         const profileData = profileResponse.data
+        console.log('📊 Profile data received:', {
+          username: profileData.username,
+          email: profileData.email,
+          hasProfilePicture: !!profileData.profilePicture,
+          profilePictureLength: profileData.profilePicture?.length || 0,
+          profilePicturePreview: profileData.profilePicture?.substring(0, 50) || 'none'
+        })
+        
         setProfile(profileData)
+        
+        // Load static data from localStorage if available
+        const savedStaticData = localStorage.getItem(`authority_static_profile_${user?.id}`)
+        const staticData = savedStaticData ? JSON.parse(savedStaticData) : {}
         
         // Update form data with live data
         setFormData({
+          // Database fields
           username: profileData.username || "",
           email: profileData.email || "",
           phoneNumber: profileData.phoneNumber || "",
-          position: profileData.position || "",
-          department: profileData.department || "",
-          bio: profileData.bio || "",
+          birthDate: profileData.birthDate ? (() => {
+            try {
+              const date = new Date(profileData.birthDate)
+              return isNaN(date.getTime()) ? "" : date.toISOString().split('T')[0]
+            } catch {
+              return ""
+            }
+          })() : "",
+          postcode: profileData.postcode || "",
+          gender: profileData.gender || "",
+          // Static fields with saved values or defaults
+          position: staticData.position || "Tourism Officer",
+          department: staticData.department || "Tourism Development",
+          bio: staticData.bio || "Dedicated tourism authority professional committed to promoting and developing sustainable tourism in our region.",
           preferences: {
-            emailNotifications: profileData.preferences?.emailNotifications ?? true,
-            smsNotifications: profileData.preferences?.smsNotifications ?? false,
-            theme: profileData.preferences?.theme || 'auto',
-            reportFrequency: profileData.preferences?.reportFrequency || 'weekly',
-            exportFormat: profileData.preferences?.exportFormat || 'excel',
-            language: profileData.preferences?.language || 'en',
-            timezone: profileData.preferences?.timezone || 'UTC'
+            emailNotifications: staticData.preferences?.emailNotifications ?? true,
+            smsNotifications: staticData.preferences?.smsNotifications ?? false,
+            theme: staticData.preferences?.theme || 'auto',
+            reportFrequency: staticData.preferences?.reportFrequency || 'weekly',
+            exportFormat: staticData.preferences?.exportFormat || 'excel',
+            language: staticData.preferences?.language || 'en',
+            timezone: staticData.preferences?.timezone || 'UTC'
           }
         })
       } else {
@@ -177,21 +207,36 @@ export default function AuthorityProfile() {
       setSaving(true)
       setError(null)
 
+      // Only send database fields to the server
       const updateData = {
         username: formData.username,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
-        position: formData.position,
-        department: formData.department,
-        bio: formData.bio,
-        preferences: formData.preferences
+        birthDate: formData.birthDate || null,
+        postcode: formData.postcode,
+        gender: formData.gender
       }
+
+      console.log('Sending profile update:', updateData)
 
       const response = await authorityApi.updateProfile(updateData)
       
       if (response.success) {
         setIsEditing(false)
-        await fetchProfileData() // Refresh data
+        
+        // Save static fields to localStorage for persistence
+        const staticData = {
+          position: formData.position,
+          department: formData.department,
+          bio: formData.bio,
+          preferences: formData.preferences
+        }
+        localStorage.setItem(`authority_static_profile_${user?.id}`, JSON.stringify(staticData))
+        
+        await fetchProfileData() // Refresh data from server
+        
+        // Refresh auth context to update sidebar and header
+        await refreshUser()
       } else {
         setError(response.message || "Failed to update profile")
       }
@@ -222,19 +267,43 @@ export default function AuthorityProfile() {
     const file = event.target.files?.[0]
     if (!file) return
 
+    console.log('📸 Starting image upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    })
+
     try {
       setUploading(true)
       setError(null)
 
+      console.log('📤 Calling uploadProfilePicture API...')
       const response = await authorityApi.uploadProfilePicture(file)
       
+      console.log('📥 Upload response:', response)
+      
       if (response.success) {
-        await fetchProfileData() // Refresh to get new image
+        console.log('✅ Upload successful, refreshing profile data...')
+        
+        // Update profile state immediately with the new image
+        setProfile(prev => prev ? {
+          ...prev,
+          profilePicture: response.data.profilePicture
+        } : null)
+        
+        // Refresh profile data from server
+        await fetchProfileData()
+        
+        // Refresh auth context to update sidebar and header
+        await refreshUser()
+        
+        console.log('✅ Profile data and auth context refreshed')
       } else {
+        console.error('❌ Upload failed:', response.message)
         setError("Failed to upload profile picture")
       }
     } catch (err) {
-      console.error("Error uploading image:", err)
+      console.error("❌ Error uploading image:", err)
       setError("Failed to upload profile picture")
     } finally {
       setUploading(false)
@@ -442,6 +511,43 @@ export default function AuthorityProfile() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="birthDate">Birth Date</Label>
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="postcode">Postcode</Label>
+                    <Input
+                      id="postcode"
+                      value={formData.postcode}
+                      onChange={(e) => handleInputChange("postcode", e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select 
+                      value={formData.gender} 
+                      onValueChange={(value) => handleInputChange("gender", value)}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="position">Position</Label>
                     <Input
                       id="position"
@@ -450,7 +556,7 @@ export default function AuthorityProfile() {
                       disabled={!isEditing}
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2">
                     <Label htmlFor="department">Department</Label>
                     <Input
                       id="department"
