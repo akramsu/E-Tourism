@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
+import { touristApi, userApi } from "@/lib/api"
 import {
   Brain,
   MapPin,
@@ -30,6 +31,8 @@ import {
   Download,
   Settings,
   RefreshCw,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 
 interface RecommendationsProps {
@@ -47,7 +50,43 @@ interface ItineraryItem {
   timeSlot: string
 }
 
+interface AIRecommendation {
+  id: number
+  name: string
+  image: string
+  rating: number
+  category: string
+  price: string
+  location: string
+  reason: string
+  confidence: number
+  timeToVisit: string
+  bestTime: string
+  tags: string[]
+  aiInsights: string[]
+}
+
+interface TrendingAttraction {
+  id: number
+  name: string
+  image: string
+  location: string
+  trendScore: number
+  visitors: string
+  category: string
+  rating: number
+  price: string
+}
+
 export default function Recommendations({ onAttractionSelect }: RecommendationsProps) {
+  // Loading and error states
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Data states
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([])
+  const [trendingAttractions, setTrendingAttractions] = useState<TrendingAttraction[]>([])
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [preferences, setPreferences] = useState({
     interests: ["historical", "cultural"],
     budget: [50],
@@ -79,118 +118,146 @@ export default function Recommendations({ onAttractionSelect }: RecommendationsP
     },
   ])
 
-  const aiRecommendations = [
-    {
-      id: 1,
-      name: "Borobudur Temple",
-      image: "/placeholder.svg?height=200&width=300",
-      rating: 4.8,
-      category: "Historical Sites",
-      price: "IDR 50,000",
-      location: "Magelang, Central Java",
-      reason: "Perfect match for your interest in historical sites and Buddhist culture",
-      confidence: 95,
-      timeToVisit: "2-3 hours",
-      bestTime: "Early morning (sunrise)",
-      tags: ["UNESCO", "Buddhist", "Historical"],
-      aiInsights: [
-        "Most photographed temple in Indonesia",
-        "Best visited during sunrise for magical experience",
-        "Similar visitors also enjoyed Prambanan Temple",
-      ],
-    },
-    {
-      id: 3,
-      name: "Taman Sari Water Castle",
-      image: "/placeholder.svg?height=200&width=300",
-      rating: 4.5,
-      category: "Palace",
-      price: "IDR 15,000",
-      location: "Yogyakarta",
-      reason: "Unique royal architecture aligns with your cultural interests",
-      confidence: 88,
-      timeToVisit: "1-2 hours",
-      bestTime: "Late afternoon",
-      tags: ["Royal", "Architecture", "Garden"],
-      aiInsights: [
-        "Former royal bathing complex",
-        "Perfect for photography enthusiasts",
-        "Combines with nearby Sultan's Palace visit",
-      ],
-    },
-    {
-      id: 5,
-      name: "Sultan's Palace (Kraton)",
-      image: "/placeholder.svg?height=200&width=300",
-      rating: 4.4,
-      category: "Cultural Sites",
-      price: "IDR 20,000",
-      location: "Yogyakarta",
-      reason: "Living culture experience matches your preferences",
-      confidence: 91,
-      timeToVisit: "1-2 hours",
-      bestTime: "Morning",
-      tags: ["Royal", "Cultural", "Living Heritage"],
-      aiInsights: [
-        "Active royal palace with living traditions",
-        "Traditional gamelan performances daily",
-        "Insight into Javanese royal culture",
-      ],
-    },
-  ]
+  // Load data from APIs
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      try {
+        setLoading(true)
+        setError(null)
 
-  const trendingAttractions = [
-    {
-      id: 6,
-      name: "Mount Bromo",
-      image: "/placeholder.svg?height=120&width=160",
-      location: "East Java",
-      trendScore: 94,
-      visitors: "2.3k this week",
-      category: "Nature",
-      price: "IDR 35,000",
-    },
-    {
-      id: 7,
-      name: "Lake Toba",
-      image: "/placeholder.svg?height=120&width=160",
-      location: "North Sumatra",
-      trendScore: 89,
-      visitors: "1.8k this week",
-      category: "Nature",
-      price: "IDR 25,000",
-    },
-    {
-      id: 8,
-      name: "Komodo National Park",
-      image: "/placeholder.svg?height=120&width=160",
-      location: "East Nusa Tenggara",
-      trendScore: 87,
-      visitors: "1.2k this week",
-      category: "Nature",
-      price: "IDR 150,000",
-    },
-  ]
+        // Load user profile for personalization
+        try {
+          const profileResponse = await userApi.getProfile()
+          if (profileResponse.success) {
+            setUserProfile(profileResponse.data)
+          }
+        } catch (profileError) {
+          console.warn("Could not load user profile:", profileError)
+        }
+
+        // Load featured attractions and convert to AI recommendations
+        const attractionsResponse = await touristApi.getFeaturedAttractions(20)
+        if (attractionsResponse.success && attractionsResponse.data) {
+          const transformedRecommendations: AIRecommendation[] = attractionsResponse.data.map((attraction: any, index: number) => ({
+            id: attraction.id,
+            name: attraction.name,
+            image: attraction.images?.[0]?.imageUrl || "/placeholder.svg",
+            rating: attraction.rating || 0,
+            category: attraction.category || "General",
+            price: attraction.price ? `IDR ${attraction.price.toLocaleString()}` : "Free",
+            location: attraction.address || "Unknown",
+            reason: generateRecommendationReason(attraction.category, index),
+            confidence: Math.floor(Math.random() * 20) + 80, // 80-100% confidence
+            timeToVisit: "2-3 hours", // Default
+            bestTime: getBestVisitTime(attraction.category),
+            tags: attraction.tags ? attraction.tags.split(',') : [attraction.category],
+            aiInsights: generateAIInsights(attraction.name, attraction.category),
+          }))
+          setAiRecommendations(transformedRecommendations.slice(0, 6))
+        }
+
+        // Load popular attractions for trending
+        const trendingResponse = await touristApi.getAttractions({ 
+          limit: 10, 
+          sortBy: 'rating', 
+          sortOrder: 'desc' 
+        })
+        if (trendingResponse.success && trendingResponse.data) {
+          const transformedTrending: TrendingAttraction[] = trendingResponse.data.map((attraction: any) => ({
+            id: attraction.id,
+            name: attraction.name,
+            image: attraction.images?.[0]?.imageUrl || "/placeholder.svg",
+            location: attraction.address || "Unknown",
+            trendScore: Math.floor(Math.random() * 20) + 80, // 80-100 trend score
+            visitors: `${Math.floor(Math.random() * 3000 + 500)} this week`,
+            category: attraction.category || "General",
+            rating: attraction.rating || 0,
+            price: attraction.price ? `IDR ${attraction.price.toLocaleString()}` : "Free",
+          }))
+          setTrendingAttractions(transformedTrending.slice(0, 4))
+        }
+
+      } catch (err) {
+        console.error("Error loading recommendations:", err)
+        setError("Failed to load recommendations. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadRecommendations()
+  }, [])
+
+  // Helper functions for generating recommendation content
+  const generateRecommendationReason = (category: string, index: number): string => {
+    const reasons = {
+      'Historical': [
+        "Perfect match for your interest in historical sites and cultural heritage",
+        "Rich historical significance aligns with your preferences",
+        "Exceptional historical value recommended for culture enthusiasts"
+      ],
+      'Cultural': [
+        "Living culture experience matches your interests perfectly",
+        "Authentic cultural immersion based on your profile",
+        "Traditional cultural site recommended by our AI"
+      ],
+      'Nature': [
+        "Natural beauty perfectly suited to your adventure preferences",
+        "Stunning landscapes match your nature-loving profile",
+        "Outdoor experience recommended for nature enthusiasts"
+      ],
+      'default': [
+        "Highly rated attraction recommended based on your interests",
+        "Popular destination that matches your travel style",
+        "Unique experience tailored to your preferences"
+      ]
+    }
+    
+    const categoryReasons = reasons[category as keyof typeof reasons] || reasons.default
+    return categoryReasons[index % categoryReasons.length]
+  }
+
+  const getBestVisitTime = (category: string): string => {
+    const timeMap = {
+      'Historical': 'Early morning',
+      'Cultural': 'Morning or afternoon',
+      'Nature': 'Early morning or late afternoon',
+      'Religious': 'Morning',
+      'default': 'Anytime'
+    }
+    return timeMap[category as keyof typeof timeMap] || timeMap.default
+  }
+
+  const generateAIInsights = (name: string, category: string): string[] => {
+    const insights = [
+      `One of the most visited ${category.toLowerCase()} attractions`,
+      "Perfect for photography enthusiasts",
+      "Recommended by 95% of visitors",
+      "Best experienced with a local guide",
+      "Great for both solo and group visits"
+    ]
+    return insights.slice(0, 3)
+  }
 
   const hotDeals = [
     {
       id: 9,
-      name: "Prambanan Temple Combo",
+      name: "Temple Combo Package",
       originalPrice: "IDR 100,000",
       discountPrice: "IDR 75,000",
       discount: "25%",
       validUntil: "Dec 31, 2024",
-      description: "Borobudur + Prambanan temples combo ticket",
+      description: "Multiple temple visits with special pricing",
       image: "/placeholder.svg?height=80&width=120",
     },
     {
       id: 10,
-      name: "Yogya Heritage Tour",
+      name: "Cultural Heritage Tour",
       originalPrice: "IDR 200,000",
       discountPrice: "IDR 150,000",
       discount: "25%",
       validUntil: "Jan 15, 2025",
-      description: "Full day guided tour of Yogyakarta's cultural sites",
+      description: "Full day guided cultural experience",
       image: "/placeholder.svg?height=80&width=120",
     },
   ]
@@ -274,7 +341,37 @@ export default function Recommendations({ onAttractionSelect }: RecommendationsP
 
           {/* AI Recommendations Tab */}
           <TabsContent value="recommendations" className="space-y-8">
-            {/* AI Recommendations */}
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                  Generating Your Personalized Recommendations
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Our AI is analyzing your preferences to find the perfect attractions...
+                </p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="text-center py-12">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                  Unable to Load Recommendations
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            )}
+
+            {/* Content - only show when not loading and no error */}
+            {!loading && !error && (
+              <>
+                {/* AI Recommendations */}
             <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -526,6 +623,8 @@ export default function Recommendations({ onAttractionSelect }: RecommendationsP
                 </div>
               </CardContent>
             </Card>
+              </>
+            )}
           </TabsContent>
 
           {/* Itinerary Builder Tab */}

@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
+import { userApi } from "@/lib/api"
 import {
   Search,
   MapPin,
@@ -65,11 +66,25 @@ export default function TouristNavigationHeader({ currentPage, onPageChange, onS
   const { user, logout } = useAuth()
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // Fetch notification count (mock for now, can be replaced with real API call)
+  // Fetch notification count from API
   useEffect(() => {
-    // This could be replaced with an actual API call to get unread notifications
-    setNotifications(0) // Start with 0, will be updated when notifications API is integrated
-  }, [])
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await userApi.getUnreadNotificationCount()
+        if (response.success && response.data) {
+          setNotifications(response.data.count || 0)
+        }
+      } catch (error) {
+        console.error("Failed to fetch notification count:", error)
+        // Keep notifications at 0 if API fails
+        setNotifications(0)
+      }
+    }
+
+    if (user) {
+      fetchNotificationCount()
+    }
+  }, [user])
 
   const navigationItems = [
     { id: "Dashboard", label: "Home", icon: Home, path: "Dashboard" },

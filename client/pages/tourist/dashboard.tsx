@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,21 +21,60 @@ import {
   Share,
   Sparkles,
   Eye,
+  Loader2,
 } from "lucide-react"
 import type React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { touristApi, userApi } from "@/lib/api"
 
 interface TouristDashboardProps {
   onPageChange: (page: string) => void
   onAttractionSelect: (attractionId: number) => void
 }
 
-interface Destination {
-  title: string
-  location: string
+interface Attraction {
+  id: number
+  name: string
+  category: string
   rating: number
   reviews: number
+  price: string
   image: string
+  location: string
+  address: string
+  description: string
+  tags: string[]
+  timeToVisit: string
+  distance: string
+  openNow: boolean
+  featured: boolean
+  liked: boolean
+  latitude?: number
+  longitude?: number
+  openingHours?: string
+  userId: number
+  createdDate: string
+  images?: { id: number; imageUrl: string }[]
+}
+
+interface UserStats {
+  attractionsVisited: number
+  averageRating: number
+  totalExperiences: number
+  travelPoints: number
+  monthlyVisits: number
+  monthlyExperiences: number
+  pointsEarned: number
+}
+
+interface TrendingDestination {
+  id: number
+  name: string
+  location: string
+  visitors: string
+  trend: string
+  image: string
+  category: string
 }
 
 // Replace the DestinationCard component with this simplified version that only shows images
@@ -145,10 +184,18 @@ const DestinationsCarousel: React.FC<{ images: { url: string; title: string }[] 
   )
 }
 
-// Update the TouristDashboard component to use the new carousel and high-quality images
+// Update the TouristDashboard component to use real data from the database
 export default function TouristDashboard({ onPageChange, onAttractionSelect }: TouristDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // State for real data from API
+  const [featuredAttractions, setFeaturedAttractions] = useState<Attraction[]>([])
+  const [userStats, setUserStats] = useState<UserStats | null>(null)
+  const [trendingDestinations, setTrendingDestinations] = useState<TrendingDestination[]>([])
+  const [attractionStats, setAttractionStats] = useState<any>(null)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -179,7 +226,97 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
     }
   }
 
-  // High-quality static images for the carousel
+  // Load data from API on component mount
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Load data in parallel
+        const [
+          featuredResponse,
+          userStatsResponse,
+          attractionStatsResponse,
+        ] = await Promise.all([
+          touristApi.getFeaturedAttractions(4),
+          userApi.getUserStats().catch(() => null), // Handle case where user stats don't exist
+          touristApi.getAttractionStats().catch(() => null),
+        ])
+
+        // Process featured attractions
+        if (featuredResponse.success && featuredResponse.data) {
+          const processedAttractions = featuredResponse.data.map((attraction: any) => ({
+            id: attraction.id,
+            name: attraction.name,
+            category: attraction.category,
+            rating: attraction.rating || 0,
+            reviews: attraction._count?.visits || 0,
+            price: attraction.price ? `IDR ${attraction.price.toLocaleString()}` : "Free",
+            image: attraction.images?.[0]?.imageUrl || "/placeholder.svg?height=300&width=400",
+            location: attraction.address,
+            address: attraction.address,
+            description: attraction.description || "",
+            tags: [], // Will be populated from categories or other fields
+            timeToVisit: "2-3 hours", // Default estimate
+            distance: "Unknown", // Would need geolocation calculation
+            openNow: true, // Would need opening hours logic
+            featured: true,
+            liked: false, // Would need user preferences
+            latitude: attraction.latitude,
+            longitude: attraction.longitude,
+            openingHours: attraction.openingHours,
+            userId: attraction.userId,
+            createdDate: attraction.createdDate,
+            images: attraction.images || [],
+          }))
+          setFeaturedAttractions(processedAttractions)
+        }
+
+        // Process user stats
+        if (userStatsResponse?.success && userStatsResponse.data) {
+          setUserStats(userStatsResponse.data)
+        } else {
+          // Set default stats if no user data
+          setUserStats({
+            attractionsVisited: 0,
+            averageRating: 0,
+            totalExperiences: 0,
+            travelPoints: 0,
+            monthlyVisits: 0,
+            monthlyExperiences: 0,
+            pointsEarned: 0,
+          })
+        }
+
+        // Process attraction stats for trending
+        if (attractionStatsResponse?.success && attractionStatsResponse.data) {
+          setAttractionStats(attractionStatsResponse.data)
+          // Generate trending destinations from top attractions
+          const trending = (attractionStatsResponse.data.topAttractions || []).slice(0, 4).map((attr: any, index: number) => ({
+            id: attr.id,
+            name: attr.name,
+            location: attr.address,
+            visitors: `${(Math.random() * 5 + 1).toFixed(1)}k`, // Mock visitor count for now
+            trend: `+${(Math.random() * 30 + 5).toFixed(0)}%`, // Mock trend for now
+            image: attr.images?.[0]?.imageUrl || "/placeholder.svg?height=80&width=80",
+            category: attr.category,
+          }))
+          setTrendingDestinations(trending)
+        }
+
+      } catch (err) {
+        console.error("Error loading dashboard data:", err)
+        setError("Failed to load dashboard data. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [])
+
+  // High-quality static images for the carousel (keeping static for hero section)
   const carouselImages = [
     {
       url: "https://images.unsplash.com/photo-1580877854178-95067799fb4c?q=80&w=1000&auto=format&fit=crop",
@@ -207,119 +344,72 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
     },
   ]
 
-  const featuredAttractions = [
-    {
-      id: 1,
-      name: "Borobudur Temple",
-      category: "Historical Site",
-      rating: 4.8,
-      reviews: 15420,
-      price: "IDR 50,000",
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Magelang, Central Java",
-      description: "UNESCO World Heritage Site and Buddhist monument",
-      tags: ["UNESCO", "Historical", "Cultural"],
-      timeToVisit: "2-3 hours",
-      featured: true,
-      liked: false,
-      distance: "2.5 km",
-      openNow: true,
+  // Generate quick stats from real user data
+  const quickStats = userStats ? [
+    { 
+      label: "Attractions Visited", 
+      value: userStats.attractionsVisited.toString(), 
+      change: `+${userStats.monthlyVisits} this month`, 
+      icon: MapPin, 
+      color: "text-blue-600" 
     },
-    {
-      id: 2,
-      name: "Prambanan Temple",
-      category: "Historical Site",
-      rating: 4.7,
-      reviews: 12380,
-      price: "IDR 50,000",
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Magnificent Hindu temple complex",
-      tags: ["Hindu", "Architecture", "Cultural"],
-      timeToVisit: "2-3 hours",
-      featured: true,
-      liked: true,
-      distance: "15 km",
-      openNow: true,
+    { 
+      label: "Average Rating Given", 
+      value: userStats.averageRating.toFixed(1), 
+      change: userStats.averageRating >= 4 ? "★ Excellent" : userStats.averageRating >= 3 ? "★ Good" : "★ Average", 
+      icon: Star, 
+      color: "text-yellow-600" 
     },
-    {
-      id: 3,
-      name: "Taman Sari Water Castle",
-      category: "Palace",
-      rating: 4.5,
-      reviews: 8940,
-      price: "IDR 15,000",
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Former royal garden of Yogyakarta Sultanate",
-      tags: ["Royal", "Garden", "Historical"],
-      timeToVisit: "1-2 hours",
-      featured: false,
-      liked: false,
-      distance: "5 km",
-      openNow: true,
+    { 
+      label: "Total Experiences", 
+      value: userStats.totalExperiences.toString(), 
+      change: `+${userStats.monthlyExperiences} this month`, 
+      icon: Calendar, 
+      color: "text-green-600" 
     },
-    {
-      id: 4,
-      name: "Malioboro Street",
-      category: "Cultural District",
-      rating: 4.3,
-      reviews: 22150,
-      price: "Free",
-      image: "/placeholder.svg?height=300&width=400",
-      location: "Yogyakarta",
-      description: "Famous shopping and cultural street",
-      tags: ["Shopping", "Culture", "Street Food"],
-      timeToVisit: "2-4 hours",
-      featured: false,
-      liked: true,
-      distance: "1 km",
-      openNow: true,
+    { 
+      label: "Travel Points", 
+      value: userStats.travelPoints.toLocaleString(), 
+      change: `+${userStats.pointsEarned} earned`, 
+      icon: Award, 
+      color: "text-purple-600" 
     },
-  ]
-
-  const quickStats = [
-    { label: "Attractions Visited", value: "12", change: "+3 this month", icon: MapPin, color: "text-blue-600" },
-    { label: "Average Rating Given", value: "4.5", change: "★ Excellent", icon: Star, color: "text-yellow-600" },
-    { label: "Total Experiences", value: "24", change: "+6 this month", icon: Calendar, color: "text-green-600" },
-    { label: "Travel Points", value: "1,247", change: "+250 earned", icon: Award, color: "text-purple-600" },
-  ]
-
-  const trendingDestinations = [
-    {
-      name: "Mount Bromo",
-      location: "East Java",
-      visitors: "2.3k",
-      trend: "+15%",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      name: "Lake Toba",
-      location: "North Sumatra",
-      visitors: "1.8k",
-      trend: "+22%",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      name: "Komodo National Park",
-      location: "East Nusa Tenggara",
-      visitors: "1.2k",
-      trend: "+8%",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      name: "Raja Ampat",
-      location: "West Papua",
-      visitors: "890",
-      trend: "+31%",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-  ]
+  ] : []
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
       onPageChange("Search Results")
     }
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-slate-600 dark:text-slate-400">Loading your travel dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-red-500 mb-4">
+            <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Error Loading Dashboard</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -593,7 +683,7 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {featuredAttractions.map((attraction) => (
+            {featuredAttractions.length > 0 ? featuredAttractions.map((attraction) => (
               <Card
                 key={attraction.id}
                 className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white dark:bg-slate-800 hover:scale-[1.02]"
@@ -657,7 +747,7 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
                     <div className="flex items-center gap-1 text-yellow-500 ml-2">
                       <Star className="h-4 w-4 fill-current" />
                       <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                        {attraction.rating}
+                        {attraction.rating.toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -677,6 +767,11 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
                         {tag}
                       </Badge>
                     ))}
+                    {attraction.tags.length === 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {attraction.category}
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -704,7 +799,19 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )) : (
+              // Empty state when no attractions are found
+              <div className="col-span-full text-center py-12">
+                <MapPin className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No Featured Attractions</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  We couldn't find any featured attractions at the moment.
+                </p>
+                <Button onClick={() => onPageChange("Search Results")}>
+                  Browse All Attractions
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -720,11 +827,11 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
               <CardDescription>Popular destinations this week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {trendingDestinations.map((dest, index) => (
+              {trendingDestinations.length > 0 ? trendingDestinations.map((dest, index) => (
                 <div
-                  key={index}
+                  key={dest.id}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer group"
-                  onClick={() => onPageChange("Search Results")}
+                  onClick={() => onAttractionSelect(dest.id)}
                 >
                   <img
                     src={dest.image || "/placeholder.svg"}
@@ -740,7 +847,14 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
                     <p className="text-xs text-green-600 dark:text-green-400">{dest.trend}</p>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8">
+                  <TrendingUp className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    No trending destinations available
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

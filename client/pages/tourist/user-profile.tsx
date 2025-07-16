@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/auth-context"
+import { userApi, touristApi } from "@/lib/api"
 import {
   User,
   MapPin,
@@ -36,6 +37,8 @@ import {
   CheckCircle,
   Lock,
   Trash2,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 
 interface UserProfileProps {
@@ -47,19 +50,30 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("dashboard")
 
-  // Mock user data based on database schema
+  // Loading and error states
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updating, setUpdating] = useState(false)
+
+  // Data states
+  const [visitHistory, setVisitHistory] = useState<any[]>([])
+  const [wishlist, setWishlist] = useState<any[]>([])
+  const [achievements, setAchievements] = useState<any[]>([])
+  const [stats, setStats] = useState<any>({})
+
+  // Real user profile data from database
   const [profileData, setProfileData] = useState({
-    userId: 1,
-    username: user?.name || "tourist_user",
-    email: user?.email || "tourist@example.com",
-    phoneNumber: "+62 812 3456 7890",
-    birthDate: "1995-06-15",
-    postcode: "55161",
-    gender: "Male",
+    userId: user?.id || 0,
+    username: user?.username || "",
+    email: user?.email || "",
+    phoneNumber: "",
+    birthDate: "",
+    postcode: "",
+    gender: "",
     profilePicture: "/placeholder.svg?height=120&width=120",
-    bio: "Travel enthusiast exploring the beautiful archipelago of Indonesia. Love discovering hidden gems and cultural experiences.",
-    location: "Yogyakarta, Indonesia",
-    joinDate: "2023-01-15",
+    bio: "",
+    location: "",
+    joinDate: "",
     preferences: {
       notifications: true,
       emailUpdates: true,
@@ -68,134 +82,170 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
     },
   })
 
-  // Mock visit history
-  const visitHistory = [
-    {
-      visitId: 1,
-      attractionId: 1,
-      attractionName: "Borobudur Temple",
-      visitDate: "2024-11-15",
-      duration: 180,
-      amount: 50000,
-      rating: 5,
-      review: "Absolutely stunning! The sunrise view was breathtaking.",
-      images: ["/placeholder.svg?height=100&width=100"],
-    },
-    {
-      visitId: 2,
-      attractionId: 2,
-      attractionName: "Prambanan Temple",
-      visitDate: "2024-11-10",
-      duration: 150,
-      amount: 50000,
-      rating: 4,
-      review: "Beautiful architecture and rich history.",
-      images: [],
-    },
-    {
-      visitId: 3,
-      attractionId: 3,
-      attractionName: "Taman Sari Water Castle",
-      visitDate: "2024-10-28",
-      duration: 120,
-      amount: 15000,
-      rating: 4,
-      review: "Interesting royal heritage site with great photo spots.",
-      images: ["/placeholder.svg?height=100&width=100", "/placeholder.svg?height=100&width=100"],
-    },
-  ]
+  // Load user profile data
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
 
-  // Mock wishlist
-  const wishlist = [
-    {
-      attractionId: 4,
-      name: "Mount Bromo",
-      location: "East Java",
-      image: "/placeholder.svg?height=150&width=200",
-      price: "IDR 35,000",
-      rating: 4.8,
-      addedDate: "2024-11-20",
-    },
-    {
-      attractionId: 5,
-      name: "Lake Toba",
-      location: "North Sumatra",
-      image: "/placeholder.svg?height=150&width=200",
-      price: "IDR 25,000",
-      rating: 4.7,
-      addedDate: "2024-11-18",
-    },
-    {
-      attractionId: 6,
-      name: "Komodo National Park",
-      location: "East Nusa Tenggara",
-      image: "/placeholder.svg?height=150&width=200",
-      price: "IDR 150,000",
-      rating: 4.9,
-      addedDate: "2024-11-12",
-    },
-  ]
+        // Load user profile
+        const profileResponse = await userApi.getProfile()
+        if (profileResponse.success && profileResponse.data) {
+          const profile = profileResponse.data
+          setProfileData(prev => ({
+            ...prev,
+            userId: profile.id,
+            username: profile.username || profile.name,
+            email: profile.email,
+            phoneNumber: profile.phoneNumber || "",
+            birthDate: profile.birthDate || "",
+            postcode: profile.postcode || "",
+            gender: profile.gender || "",
+            profilePicture: profile.profilePicture || "/placeholder.svg?height=120&width=120",
+            bio: profile.bio || "",
+            location: profile.location || "",
+            joinDate: profile.createdDate || "",
+          }))
+        }
 
-  // Mock achievements
-  const achievements = [
-    {
-      id: 1,
-      title: "Explorer",
-      description: "Visited 5 different attractions",
-      icon: MapPin,
-      earned: true,
-      earnedDate: "2024-11-15",
-      progress: 100,
-      total: 5,
-    },
-    {
-      id: 2,
-      title: "Culture Enthusiast",
-      description: "Visited 3 historical sites",
-      icon: Award,
-      earned: true,
-      earnedDate: "2024-11-10",
-      progress: 100,
-      total: 3,
-    },
-    {
-      id: 3,
-      title: "Reviewer",
-      description: "Write 10 reviews",
-      icon: MessageSquare,
-      earned: false,
-      earnedDate: null,
-      progress: 30,
-      total: 10,
-    },
-    {
-      id: 4,
-      title: "Adventure Seeker",
-      description: "Visit 5 nature attractions",
-      icon: TrendingUp,
-      earned: false,
-      earnedDate: null,
-      progress: 20,
-      total: 5,
-    },
-  ]
+        // Load user statistics
+        try {
+          const statsResponse = await userApi.getUserStats()
+          if (statsResponse.success && statsResponse.data) {
+            setStats(statsResponse.data)
+          }
+        } catch (statsError) {
+          console.warn("Could not load user stats:", statsError)
+        }
 
-  // Statistics
-  const stats = {
-    totalVisits: visitHistory.length,
-    totalSpent: visitHistory.reduce((sum, visit) => sum + visit.amount, 0),
-    averageRating: visitHistory.reduce((sum, visit) => sum + visit.rating, 0) / visitHistory.length,
-    totalDuration: visitHistory.reduce((sum, visit) => sum + visit.duration, 0),
-    favoriteCategory: "Historical Sites",
-    memberSince: "January 2023",
-    reviewsWritten: visitHistory.filter((visit) => visit.review).length,
-    photosShared: visitHistory.reduce((sum, visit) => sum + visit.images.length, 0),
+        // Load visit history (if available)
+        try {
+          const visitsResponse = await touristApi.getUserVisits({ limit: 100 })
+          if (visitsResponse.success && visitsResponse.data) {
+            const transformedVisits = visitsResponse.data.map((visit: any) => ({
+              visitId: visit.id,
+              attractionId: visit.attractionId,
+              attractionName: visit.attraction?.name || "Unknown Attraction",
+              visitDate: visit.visitDate,
+              duration: visit.duration || 0,
+              amount: visit.amount || 0,
+              rating: visit.rating || 0,
+              review: visit.visitorFeedback || "",
+              images: visit.images || [],
+            }))
+            setVisitHistory(transformedVisits)
+          }
+        } catch (visitsError) {
+          console.warn("Could not load visit history:", visitsError)
+          // Set some mock data for demonstration
+          setVisitHistory([])
+        }
+
+        // Load wishlist (favorites)
+        try {
+          const wishlistResponse = await userApi.getFavorites()
+          if (wishlistResponse.success && wishlistResponse.data) {
+            const transformedWishlist = wishlistResponse.data.map((fav: any) => ({
+              attractionId: fav.attraction.id,
+              name: fav.attraction.name,
+              location: fav.attraction.address || "Unknown Location",
+              image: fav.attraction.images?.[0]?.imageUrl || "/placeholder.svg",
+              price: fav.attraction.price ? `IDR ${fav.attraction.price.toLocaleString()}` : "Free",
+              rating: fav.attraction.rating || 0,
+              addedDate: fav.createdDate,
+            }))
+            setWishlist(transformedWishlist)
+          }
+        } catch (wishlistError) {
+          console.warn("Could not load wishlist:", wishlistError)
+          setWishlist([])
+        }
+
+        // Generate achievements based on user activity
+        const generatedAchievements = generateAchievements(stats, visitHistory.length)
+        setAchievements(generatedAchievements)
+
+      } catch (err) {
+        console.error("Error loading profile data:", err)
+        setError("Failed to load profile data. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (user) {
+      loadProfileData()
+    } else {
+      setLoading(false)
+    }
+  }, [user])
+
+  // Generate achievements based on user activity
+  const generateAchievements = (userStats: any, visitCount: number) => {
+    return [
+      {
+        id: 1,
+        title: "Explorer",
+        description: "Visited 5 different attractions",
+        icon: MapPin,
+        earned: visitCount >= 5,
+        earnedDate: visitCount >= 5 ? new Date().toISOString() : null,
+        progress: Math.min(visitCount, 5),
+        total: 5,
+      },
+      {
+        id: 2,
+        title: "Reviewer",
+        description: "Left 10 helpful reviews",
+        icon: Star,
+        earned: (userStats?.totalReviews || 0) >= 10,
+        earnedDate: (userStats?.totalReviews || 0) >= 10 ? new Date().toISOString() : null,
+        progress: Math.min(userStats?.totalReviews || 0, 10),
+        total: 10,
+      },
+      {
+        id: 3,
+        title: "Cultural Enthusiast",
+        description: "Visited 3 cultural sites",
+        icon: Trophy,
+        earned: (userStats?.culturalVisits || 0) >= 3,
+        earnedDate: (userStats?.culturalVisits || 0) >= 3 ? new Date().toISOString() : null,
+        progress: Math.min(userStats?.culturalVisits || 0, 3),
+        total: 3,
+      },
+      {
+        id: 4,
+        title: "Adventure Seeker",
+        description: "Completed 5 outdoor activities",
+        icon: Award,
+        earned: (userStats?.adventureActivities || 0) >= 5,
+        earnedDate: (userStats?.adventureActivities || 0) >= 5 ? new Date().toISOString() : null,
+        progress: Math.min(userStats?.adventureActivities || 0, 5),
+        total: 5,
+      },
+    ]
   }
 
-  const handleSaveProfile = () => {
-    setIsEditing(false)
-    // In real app, this would save to database
-    console.log("Profile saved:", profileData)
+  // Handle profile updates
+  const handleSaveProfile = async () => {
+    try {
+      setUpdating(true)
+      
+      // Update profile via API
+      const updateResponse = await userApi.updateProfile(profileData)
+      if (updateResponse.success) {
+        setIsEditing(false)
+        // Show success message
+      } else {
+        throw new Error(updateResponse.message || "Failed to update profile")
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err)
+      setError("Failed to update profile. Please try again.")
+    } finally {
+      setUpdating(false)
+    }
   }
 
   const handleCancelEdit = () => {
@@ -203,7 +253,57 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
     // Reset any changes
   }
 
-  const DashboardTab = () => (
+  const DashboardTab = () => {
+    if (loading) {
+      return (
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardContent className="p-4 text-center">
+                  <div className="animate-pulse">
+                    <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded mx-auto mb-2"></div>
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid lg:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardHeader>
+                  <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="animate-pulse space-y-4">
+                    {[...Array(3)].map((_, j) => (
+                      <div key={j} className="h-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Error Loading Profile</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      )
+    }
+
+    return (
     <div className="space-y-8">
       {/* Stats Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -324,9 +424,48 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
         </CardContent>
       </Card>
     </div>
-  )
+    )
+  }
 
-  const HistoryTab = () => (
+  const HistoryTab = () => {
+    if (loading) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+            <div className="animate-pulse h-10 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
+          </div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                    <div className="h-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Error Loading History</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      )
+    }
+
+    return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">Visit History</h2>
@@ -376,7 +515,7 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
               {visit.images.length > 0 && (
                 <div className="mt-4">
                   <div className="flex gap-2">
-                    {visit.images.map((image, index) => (
+                    {visit.images.map((image: string, index: number) => (
                       <img
                         key={index}
                         src={image || "/placeholder.svg"}
@@ -403,9 +542,49 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
         ))}
       </div>
     </div>
-  )
+    )
+  }
 
-  const WishlistTab = () => (
+  const WishlistTab = () => {
+    if (loading) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+            <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-16"></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <div className="animate-pulse">
+                  <div className="h-40 bg-slate-200 dark:bg-slate-700 rounded-t"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Error Loading Wishlist</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      )
+    }
+
+    return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">My Wishlist</h2>
@@ -461,9 +640,50 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
         </div>
       )}
     </div>
-  )
+    )
+  }
 
-  const ReviewsTab = () => (
+  const ReviewsTab = () => {
+    if (loading) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+            <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
+          </div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="animate-pulse space-y-4">
+                    <div className="flex justify-between">
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-16"></div>
+                    </div>
+                    <div className="h-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Error Loading Reviews</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      )
+    }
+
+    return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">My Reviews</h2>
@@ -510,9 +730,43 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
           ))}
       </div>
     </div>
-  )
+    )
+  }
 
-  const SettingsTab = () => (
+  const SettingsTab = () => {
+    if (loading) {
+      return (
+        <div className="space-y-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <div className="animate-pulse h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="animate-pulse space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-12 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Error Loading Settings</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      )
+    }
+
+    return (
     <div className="space-y-8">
       {/* Profile Information */}
       <Card className="border-0 shadow-lg">
@@ -767,7 +1021,62 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
         </CardContent>
       </Card>
     </div>
-  )
+    )
+  }
+
+  // Global loading state for initial data
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          {/* Profile Header Skeleton */}
+          <div className="text-center mb-8">
+            <div className="animate-pulse">
+              <div className="h-32 w-32 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4"></div>
+              <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mx-auto mb-2"></div>
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mx-auto mb-2"></div>
+              <div className="flex items-center justify-center gap-4">
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="animate-pulse">
+            <div className="grid grid-cols-5 gap-2 mb-8">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-40 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Global error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="text-center py-20">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Failed to Load Profile</h1>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
+            <Button onClick={() => window.location.reload()} size="lg">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">

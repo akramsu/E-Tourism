@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -37,13 +37,59 @@ import {
   Send,
   Camera,
   Smile,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
+import { touristApi } from "@/lib/api"
+import { format } from "date-fns"
 
 interface AttractionDetailsProps {
   attractionId: number
   onBack: () => void
   onAttractionSelect: (attractionId: number) => void
   onBookNow?: (attractionId: number) => void
+}
+
+interface Attraction {
+  id: number
+  name: string
+  category: string
+  rating: number
+  reviews: number
+  price: number
+  priceFormatted: string
+  location: string
+  address: string
+  coordinates?: string
+  description: string
+  fullDescription?: string
+  images: { id: number; imageUrl: string }[]
+  openingHours?: string
+  website?: string
+  phone?: string
+  estimatedDuration: string
+  bestTimeToVisit: string
+  tags: string[]
+  amenities: { icon: any; name: string }[]
+  ticketTypes: { name: string; price: string; description: string }[]
+  timeSlots: string[]
+  latitude?: number
+  longitude?: number
+  userId: number
+  createdDate: string
+}
+
+interface Review {
+  id: number
+  user: string
+  avatar: string
+  rating: number
+  date: string
+  text: string
+  helpful: number
+  photos: string[]
+  visitDate: string
+  duration?: number
 }
 
 export default function AttractionDetails({
@@ -63,137 +109,196 @@ export default function AttractionDetails({
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
   const [hoveredStar, setHoveredStar] = useState(0)
 
-  // Mock data - in real app, this would come from database based on attractionId
-  const attraction = {
-    id: attractionId,
-    name: "Borobudur Temple",
-    category: "Historical Site",
-    rating: 4.8,
-    reviews: 15420,
-    price: "IDR 50,000",
-    priceUSD: "$3.50",
-    location: "Magelang, Central Java",
-    coordinates: "7.6079° S, 110.2038° E",
-    description:
-      "Borobudur is a 9th-century Mahayana Buddhist temple in Magelang Regency, not far from the town of Muntilan, in Central Java, Indonesia. It is the world's largest Buddhist temple and UNESCO World Heritage Site.",
-    fullDescription:
-      "Borobudur was built in the 9th century during the reign of the Sailendra Dynasty. The temple was built as a single large stupa and, when viewed from above, takes the form of a giant tantric Buddhist mandala, simultaneously representing the Buddhist cosmology and the nature of mind. The temple consists of nine stacked platforms, six square and three circular, topped by a central dome.",
-    images: [
-      "/placeholder.svg?height=400&width=600",
-      "/placeholder.svg?height=400&width=600",
-      "/placeholder.svg?height=400&width=600",
-      "/placeholder.svg?height=400&width=600",
-      "/placeholder.svg?height=400&width=600",
-    ],
-    openingHours: "06:00 - 18:00",
-    website: "borobudurpark.com",
-    phone: "+62 293 788266",
-    estimatedDuration: "2-3 hours",
-    bestTimeToVisit: "Early morning (sunrise) or late afternoon",
-    tags: ["UNESCO World Heritage", "Buddhist", "Historical", "Architecture", "Cultural"],
-    amenities: [
-      { icon: Wifi, name: "Free WiFi" },
-      { icon: Car, name: "Parking Available" },
-      { icon: Coffee, name: "Cafe & Restaurant" },
-      { icon: Shield, name: "Security" },
-      { icon: TreePine, name: "Garden" },
-      { icon: Accessibility, name: "Wheelchair Accessible" },
-    ],
-    ticketTypes: [
-      { name: "Regular Admission", price: "IDR 50,000", description: "Access to temple grounds" },
-      { name: "Sunrise Tour", price: "IDR 450,000", description: "Early morning access with guide" },
-      { name: "Combo Ticket", price: "IDR 75,000", description: "Borobudur + Prambanan temples" },
-    ],
-    timeSlots: ["06:00", "07:00", "08:00", "09:00", "10:00", "14:00", "15:00", "16:00", "17:00"],
-  }
+  // Data loading states
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [attraction, setAttraction] = useState<Attraction | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [relatedAttractions, setRelatedAttractions] = useState<any[]>([])
 
-  const reviews = [
-    {
-      id: 1,
-      user: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      rating: 5,
-      date: "2 days ago",
-      text: "Absolutely breathtaking! The sunrise tour was worth every penny. The architecture is incredible and the views are stunning. A must-visit when in Java!",
-      helpful: 24,
-      photos: ["/placeholder.svg?height=100&width=100", "/placeholder.svg?height=100&width=100"],
-    },
-    {
-      id: 2,
-      user: "Michael Chen",
-      avatar: "/placeholder.svg?height=40&width=40",
-      rating: 4,
-      date: "1 week ago",
-      text: "Amazing historical site with rich Buddhist heritage. The temple complex is massive and well-preserved. Get there early to avoid crowds!",
-      helpful: 18,
-      photos: [],
-    },
-    {
-      id: 3,
-      user: "Lisa Rodriguez",
-      avatar: "/placeholder.svg?height=40&width=40",
-      rating: 5,
-      date: "2 weeks ago",
-      text: "One of the most spiritual and peaceful places I've ever visited. The sunset views from the top are absolutely magical. Highly recommended!",
-      helpful: 31,
-      photos: ["/placeholder.svg?height=100&width=100"],
-    },
-  ]
+  // Load attraction data
+  useEffect(() => {
+    const loadAttractionData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
 
-  const relatedAttractions = [
-    {
-      id: 2,
-      name: "Prambanan Temple",
-      image: "/placeholder.svg?height=150&width=200",
-      rating: 4.7,
-      price: "IDR 50,000",
-      distance: "15 km away",
-    },
-    {
-      id: 3,
-      name: "Taman Sari Water Castle",
-      image: "/placeholder.svg?height=150&width=200",
-      rating: 4.5,
-      price: "IDR 15,000",
-      distance: "25 km away",
-    },
-    {
-      id: 4,
-      name: "Sultan's Palace",
-      image: "/placeholder.svg?height=150&width=200",
-      rating: 4.4,
-      price: "IDR 20,000",
-      distance: "30 km away",
-    },
-  ]
+        // Load attraction details
+        const attractionResponse = await touristApi.getAttraction(attractionId)
+        
+        if (attractionResponse.success && attractionResponse.data) {
+          const attractionData = attractionResponse.data
+          
+          // Process attraction data
+          const processedAttraction: Attraction = {
+            id: attractionData.id,
+            name: attractionData.name,
+            category: attractionData.category,
+            rating: attractionData.rating || 0,
+            reviews: attractionData._count?.visits || 0,
+            price: attractionData.price || 0,
+            priceFormatted: attractionData.price 
+              ? `IDR ${attractionData.price.toLocaleString()}` 
+              : "Free",
+            location: attractionData.address,
+            address: attractionData.address,
+            coordinates: attractionData.latitude && attractionData.longitude 
+              ? `${attractionData.latitude}° S, ${attractionData.longitude}° E`
+              : undefined,
+            description: attractionData.description || "",
+            fullDescription: attractionData.description || "",
+            images: attractionData.images || [],
+            openingHours: attractionData.openingHours || "Please contact for hours",
+            website: undefined, // Not in current schema
+            phone: undefined, // Not in current schema
+            estimatedDuration: "2-3 hours", // Default estimate
+            bestTimeToVisit: "Morning or late afternoon",
+            tags: [attractionData.category], // Use category as tag
+            amenities: [
+              { icon: Wifi, name: "Free WiFi" },
+              { icon: Car, name: "Parking Available" },
+              { icon: Coffee, name: "Cafe & Restaurant" },
+              { icon: Shield, name: "Security" },
+              { icon: TreePine, name: "Garden" },
+              { icon: Accessibility, name: "Wheelchair Accessible" },
+            ], // Default amenities
+            ticketTypes: [
+              { 
+                name: "Regular Admission", 
+                price: attractionData.price 
+                  ? `IDR ${attractionData.price.toLocaleString()}` 
+                  : "Free", 
+                description: "Standard access to attraction" 
+              }
+            ],
+            timeSlots: ["06:00", "07:00", "08:00", "09:00", "10:00", "14:00", "15:00", "16:00", "17:00"],
+            latitude: attractionData.latitude,
+            longitude: attractionData.longitude,
+            userId: attractionData.userId,
+            createdDate: attractionData.createdDate,
+          }
 
+          setAttraction(processedAttraction)
+
+          // Process reviews from visits
+          if (attractionData.visits) {
+            const processedReviews = attractionData.visits
+              .filter((visit: any) => visit.visitorFeedback && visit.rating)
+              .map((visit: any) => ({
+                id: visit.id,
+                user: visit.visitor?.username || "Anonymous User",
+                avatar: visit.visitor?.profilePicture || "/placeholder.svg?height=40&width=40",
+                rating: visit.rating,
+                date: format(new Date(visit.visitDate), "MMM dd, yyyy"),
+                text: visit.visitorFeedback,
+                helpful: Math.floor(Math.random() * 50), // Mock helpful count
+                photos: [], // Photos not implemented yet
+                visitDate: visit.visitDate,
+                duration: visit.duration,
+              }))
+            setReviews(processedReviews)
+          }
+
+          // Load related attractions (same category)
+          try {
+            const relatedResponse = await touristApi.getAttractions({
+              category: attractionData?.category,
+              limit: 3,
+            })
+            
+            if (relatedResponse.success && relatedResponse.data) {
+              const related = relatedResponse.data
+                .filter((attr: any) => attr.id !== attractionId)
+                .slice(0, 3)
+                .map((attr: any) => ({
+                  id: attr.id,
+                  name: attr.name,
+                  image: attr.images?.[0]?.imageUrl || "/placeholder.svg?height=150&width=200",
+                  rating: attr.rating || 0,
+                  price: attr.price ? `IDR ${attr.price.toLocaleString()}` : "Free",
+                  distance: "Distance calculation needed", // Would need geolocation
+                  category: attr.category
+                }))
+              setRelatedAttractions(related)
+            }
+          } catch (relatedError) {
+            console.warn("Could not load related attractions:", relatedError)
+          }
+        } else {
+          throw new Error("Failed to load attraction details")
+        }
+
+      } catch (err) {
+        console.error("Error loading attraction data:", err)
+        setError("Failed to load attraction details. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (attractionId) {
+      loadAttractionData()
+    }
+  }, [attractionId])
+
+  // Handle image navigation
   const nextImage = () => {
-    setSelectedImageIndex((prev) => (prev + 1) % attraction.images.length)
+    if (attraction?.images.length) {
+      setSelectedImageIndex((prev) => (prev + 1) % attraction.images.length)
+    }
   }
 
   const prevImage = () => {
-    setSelectedImageIndex((prev) => (prev - 1 + attraction.images.length) % attraction.images.length)
+    if (attraction?.images.length) {
+      setSelectedImageIndex((prev) => (prev - 1 + attraction.images.length) % attraction.images.length)
+    }
   }
 
   const handleReviewSubmit = async () => {
-    if (reviewRating === 0 || !reviewText.trim()) return
+    if (reviewRating === 0 || !reviewText.trim() || !attraction) return
 
     setIsSubmittingReview(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Submit the review via API
+      await touristApi.submitReview({
+        attractionId: attraction.id,
+        rating: reviewRating,
+        visitorFeedback: reviewText,
+        visitDate: selectedDate ? (typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+        duration: 120, // Default 2 hours
+        amount: attraction.price || 0
+      })
 
-    // Reset form
-    setReviewRating(0)
-    setReviewText("")
-    setIsSubmittingReview(false)
+      // Add new review to the list optimistically
+      const newReview: Review = {
+        id: Date.now(),
+        user: "You",
+        avatar: "/placeholder.svg?height=40&width=40",
+        rating: reviewRating,
+        date: "Just now",
+        text: reviewText,
+        helpful: 0,
+        photos: [],
+        visitDate: selectedDate?.toISOString() || new Date().toISOString(),
+      }
+      setReviews(prev => [newReview, ...prev])
 
-    // Show success message (in real app, you'd update the reviews list)
-    alert("Review submitted successfully!")
+      // Reset form
+      setReviewRating(0)
+      setReviewText("")
+      alert("Review submitted successfully!")
+
+    } catch (error) {
+      console.error("Error submitting review:", error)
+      alert("Failed to submit review. Please try again.")
+    } finally {
+      setIsSubmittingReview(false)
+    }
   }
 
   const handleBookNow = () => {
-    if (onBookNow) {
-      onBookNow(attractionId)
+    if (onBookNow && attraction) {
+      onBookNow(attraction.id)
     } else {
       // Fallback - show alert for now
       alert("Booking functionality will be available soon!")
@@ -216,6 +321,43 @@ export default function AttractionDetails({
     ))
   }
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-slate-600 dark:text-slate-400">Loading attraction details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !attraction) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+            {error ? "Error Loading Attraction" : "Attraction Not Found"}
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
+            {error || "The attraction you're looking for could not be found."}
+          </p>
+          <div className="space-x-3">
+            <Button onClick={onBack} variant="outline">
+              Go Back
+            </Button>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Back Button */}
@@ -230,21 +372,27 @@ export default function AttractionDetails({
       <section className="relative">
         <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
           <img
-            src={attraction.images[selectedImageIndex] || "/placeholder.svg"}
+            src={
+              attraction.images.length > 0 
+                ? attraction.images[selectedImageIndex]?.imageUrl || "/placeholder.svg"
+                : "/placeholder.svg?height=400&width=600"
+            }
             alt={attraction.name}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/20" />
 
-          {/* Gallery Navigation */}
-          <div className="absolute inset-0 flex items-center justify-between p-4">
-            <Button variant="secondary" size="sm" onClick={prevImage} className="bg-white/90 hover:bg-white">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="secondary" size="sm" onClick={nextImage} className="bg-white/90 hover:bg-white">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Gallery Navigation - only show if multiple images */}
+          {attraction.images.length > 1 && (
+            <div className="absolute inset-0 flex items-center justify-between p-4">
+              <Button variant="secondary" size="sm" onClick={prevImage} className="bg-white/90 hover:bg-white">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="sm" onClick={nextImage} className="bg-white/90 hover:bg-white">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="absolute top-4 right-4 flex gap-2">
@@ -254,56 +402,62 @@ export default function AttractionDetails({
             <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white">
               <Share className="h-4 w-4" />
             </Button>
-            <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white">
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                  <DialogTitle>Photo Gallery</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {attraction.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image || "/placeholder.svg"}
-                      alt={`${attraction.name} ${index + 1}`}
-                      className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => {
-                        setSelectedImageIndex(index)
-                        setShowImageModal(false)
-                      }}
-                    />
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
+            {attraction.images.length > 0 && (
+              <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white">
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Photo Gallery</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {attraction.images.map((image, index) => (
+                      <img
+                        key={image.id}
+                        src={image.imageUrl || "/placeholder.svg"}
+                        alt={`${attraction.name} ${index + 1}`}
+                        className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          setSelectedImageIndex(index)
+                          setShowImageModal(false)
+                        }}
+                      />
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
-          {/* Image Counter */}
-          <div className="absolute bottom-4 left-4">
-            <Badge className="bg-black/70 text-white">
-              {selectedImageIndex + 1} / {attraction.images.length}
-            </Badge>
-          </div>
+          {/* Image Counter - only show if multiple images */}
+          {attraction.images.length > 1 && (
+            <div className="absolute bottom-4 left-4">
+              <Badge className="bg-black/70 text-white">
+                {selectedImageIndex + 1} / {attraction.images.length}
+              </Badge>
+            </div>
+          )}
         </div>
 
-        {/* Thumbnail Strip */}
-        <div className="hidden sm:flex gap-2 p-4 bg-white dark:bg-slate-800 border-b overflow-x-auto">
-          {attraction.images.map((image, index) => (
-            <img
-              key={index}
-              src={image || "/placeholder.svg"}
-              alt={`Thumbnail ${index + 1}`}
-              className={`w-16 h-16 object-cover rounded-lg cursor-pointer transition-all ${
-                index === selectedImageIndex ? "ring-2 ring-blue-600" : "opacity-60 hover:opacity-100"
-              }`}
-              onClick={() => setSelectedImageIndex(index)}
-            />
-          ))}
-        </div>
+        {/* Thumbnail Strip - only show if multiple images */}
+        {attraction.images.length > 1 && (
+          <div className="hidden sm:flex gap-2 p-4 bg-white dark:bg-slate-800 border-b overflow-x-auto">
+            {attraction.images.map((image, index) => (
+              <img
+                key={image.id}
+                src={image.imageUrl || "/placeholder.svg"}
+                alt={`Thumbnail ${index + 1}`}
+                className={`w-16 h-16 object-cover rounded-lg cursor-pointer transition-all ${
+                  index === selectedImageIndex ? "ring-2 ring-blue-600" : "opacity-60 hover:opacity-100"
+                }`}
+                onClick={() => setSelectedImageIndex(index)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -321,15 +475,19 @@ export default function AttractionDetails({
                     <div className="flex items-center gap-4 text-slate-600 dark:text-slate-400">
                       <div className="flex items-center gap-1">
                         <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                        <span className="font-medium">{attraction.rating}</span>
+                        <span className="font-medium">{attraction.rating.toFixed(1)}</span>
                         <span>({attraction.reviews} reviews)</span>
                       </div>
                       <Badge variant="secondary">{attraction.category}</Badge>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{attraction.price}</p>
-                    <p className="text-slate-500 dark:text-slate-400">{attraction.priceUSD}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{attraction.priceFormatted}</p>
+                    {attraction.price > 0 && (
+                      <p className="text-slate-500 dark:text-slate-400">
+                        ~${(attraction.price / 15000).toFixed(2)} USD
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -369,7 +527,9 @@ export default function AttractionDetails({
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-white mb-3">About This Place</h3>
-                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{attraction.fullDescription}</p>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {attraction.fullDescription || attraction.description}
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -381,23 +541,31 @@ export default function AttractionDetails({
                         <h4 className="font-medium text-slate-900 dark:text-white mb-2">Best Time to Visit</h4>
                         <p className="text-slate-600 dark:text-slate-400">{attraction.bestTimeToVisit}</p>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-2">Contact</h4>
-                        <div className="space-y-1 text-slate-600 dark:text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4" />
-                            <span>{attraction.phone}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Globe className="h-4 w-4" />
-                            <span>{attraction.website}</span>
+                      {(attraction.phone || attraction.website) && (
+                        <div>
+                          <h4 className="font-medium text-slate-900 dark:text-white mb-2">Contact</h4>
+                          <div className="space-y-1 text-slate-600 dark:text-slate-400">
+                            {attraction.phone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4" />
+                                <span>{attraction.phone}</span>
+                              </div>
+                            )}
+                            {attraction.website && (
+                              <div className="flex items-center gap-2">
+                                <Globe className="h-4 w-4" />
+                                <span>{attraction.website}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-2">Coordinates</h4>
-                        <p className="text-slate-600 dark:text-slate-400">{attraction.coordinates}</p>
-                      </div>
+                      )}
+                      {attraction.coordinates && (
+                        <div>
+                          <h4 className="font-medium text-slate-900 dark:text-white mb-2">Coordinates</h4>
+                          <p className="text-slate-600 dark:text-slate-400">{attraction.coordinates}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -419,11 +587,14 @@ export default function AttractionDetails({
                       <div className="text-center text-slate-500 dark:text-slate-400">
                         <MapPin className="h-12 w-12 mx-auto mb-2" />
                         <p>Interactive map coming soon</p>
+                        {attraction.coordinates && (
+                          <p className="text-sm mt-2">{attraction.coordinates}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <Navigation className="h-4 w-4" />
-                      <span>{attraction.location}</span>
+                      <span>{attraction.address}</span>
                     </div>
                   </div>
                 </TabsContent>
@@ -542,70 +713,84 @@ export default function AttractionDetails({
               <CardHeader>
                 <CardTitle>Reviews & Ratings</CardTitle>
                 <CardDescription>
-                  {attraction.reviews} reviews • Average rating {attraction.rating}/5
+                  {attraction.reviews} reviews • Average rating {attraction.rating.toFixed(1)}/5
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {reviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="border-b border-slate-200 dark:border-slate-700 last:border-0 pb-6 last:pb-0"
-                  >
-                    <div className="flex items-start gap-4">
-                      <Avatar>
-                        <AvatarImage src={review.avatar || "/placeholder.svg"} alt={review.user} />
-                        <AvatarFallback>
-                          {review.user
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-slate-900 dark:text-white">{review.user}</p>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center">{renderStars(review.rating)}</div>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">{review.date}</span>
+                {reviews.length > 0 ? (
+                  <>
+                    {reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="border-b border-slate-200 dark:border-slate-700 last:border-0 pb-6 last:pb-0"
+                      >
+                        <div className="flex items-start gap-4">
+                          <Avatar>
+                            <AvatarImage src={review.avatar || "/placeholder.svg"} alt={review.user} />
+                            <AvatarFallback>
+                              {review.user
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-slate-900 dark:text-white">{review.user}</p>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center">{renderStars(review.rating)}</div>
+                                  <span className="text-sm text-slate-500 dark:text-slate-400">{review.date}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-slate-700 dark:text-slate-300 mb-3">{review.text}</p>
+                            {review.photos.length > 0 && (
+                              <div className="flex gap-2 mb-3">
+                                {review.photos.map((photo, index) => (
+                                  <img
+                                    key={index}
+                                    src={photo || "/placeholder.svg"}
+                                    alt={`Review photo ${index + 1}`}
+                                    className="w-16 h-16 object-cover rounded-lg"
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                              <button className="flex items-center gap-1 hover:text-blue-600">
+                                <ThumbsUp className="h-4 w-4" />
+                                Helpful ({review.helpful})
+                              </button>
+                              <button className="flex items-center gap-1 hover:text-blue-600">
+                                <MessageCircle className="h-4 w-4" />
+                                Reply
+                              </button>
+                              <button className="flex items-center gap-1 hover:text-red-600">
+                                <Flag className="h-4 w-4" />
+                                Report
+                              </button>
                             </div>
                           </div>
                         </div>
-                        <p className="text-slate-700 dark:text-slate-300 mb-3">{review.text}</p>
-                        {review.photos.length > 0 && (
-                          <div className="flex gap-2 mb-3">
-                            {review.photos.map((photo, index) => (
-                              <img
-                                key={index}
-                                src={photo || "/placeholder.svg"}
-                                alt={`Review photo ${index + 1}`}
-                                className="w-16 h-16 object-cover rounded-lg"
-                              />
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                          <button className="flex items-center gap-1 hover:text-blue-600">
-                            <ThumbsUp className="h-4 w-4" />
-                            Helpful ({review.helpful})
-                          </button>
-                          <button className="flex items-center gap-1 hover:text-blue-600">
-                            <MessageCircle className="h-4 w-4" />
-                            Reply
-                          </button>
-                          <button className="flex items-center gap-1 hover:text-red-600">
-                            <Flag className="h-4 w-4" />
-                            Report
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    ))}
 
-                <Button variant="outline" className="w-full">
-                  View All Reviews
-                </Button>
+                    {reviews.length > 3 && (
+                      <Button variant="outline" className="w-full">
+                        View All Reviews
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Star className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No Reviews Yet</h3>
+                    <p className="text-slate-600 dark:text-slate-400 mb-4">
+                      Be the first to share your experience at {attraction.name}!
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -701,7 +886,7 @@ export default function AttractionDetails({
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium">Total</span>
-                      <span className="text-xl font-bold">{attraction.price}</span>
+                      <span className="text-xl font-bold">{attraction.priceFormatted}</span>
                     </div>
                     <Button
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"

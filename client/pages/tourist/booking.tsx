@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
+import { touristApi, userApi } from "@/lib/api"
 import {
   ArrowLeft,
   CalendarIcon,
@@ -25,6 +26,7 @@ import {
   Phone,
   Loader2,
   Percent,
+  AlertCircle,
 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -50,27 +52,79 @@ export default function Booking({ attractionId, onBack }: BookingProps) {
   const [paymentMethod, setPaymentMethod] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [bookingComplete, setBookingComplete] = useState(false)
+  
+  // Loading and error states
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Real attraction data from API
+  const [attraction, setAttraction] = useState<any>(null)
 
-  // Mock attraction data - in real app, this would come from props or API
-  const attraction = {
-    id: attractionId,
-    name: "Borobudur Temple",
-    image: "/placeholder.svg?height=200&width=300",
-    location: "Magelang, Central Java",
-    rating: 4.8,
-    reviews: 15420,
-    ticketTypes: [
-      { id: "regular", name: "Regular Admission", price: 50000, description: "Access to temple grounds" },
-      { id: "sunrise", name: "Sunrise Tour", price: 450000, description: "Early morning access with guide" },
-      { id: "combo", name: "Combo Ticket", price: 75000, description: "Borobudur + Prambanan temples" },
-    ],
-    timeSlots: ["06:00", "07:00", "08:00", "09:00", "10:00", "14:00", "15:00", "16:00", "17:00"],
-    availableDates: Array.from({ length: 30 }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() + i + 1)
-      return date
-    }),
-  }
+  // Load attraction data
+  useEffect(() => {
+    const loadAttraction = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await touristApi.getAttraction(attractionId)
+        if (response.success && response.data) {
+          const attractionData = response.data
+          
+          // Transform API data to booking format
+          const bookingAttraction = {
+            id: attractionData.id,
+            name: attractionData.name,
+            image: attractionData.images?.[0]?.imageUrl || "/placeholder.svg",
+            location: attractionData.address || "Location TBD",
+            rating: attractionData.rating || 4.5,
+            reviews: attractionData.totalVisits || 0,
+            ticketTypes: [
+              { 
+                id: "regular", 
+                name: "Regular Admission", 
+                price: attractionData.price || 50000, 
+                description: "Standard entry to the attraction" 
+              },
+              { 
+                id: "guided", 
+                name: "Guided Tour", 
+                price: (attractionData.price || 50000) * 1.5, 
+                description: "Guided tour with local expert" 
+              },
+              { 
+                id: "premium", 
+                name: "Premium Experience", 
+                price: (attractionData.price || 50000) * 2, 
+                description: "Premium access with special amenities" 
+              },
+            ],
+            timeSlots: ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"],
+            availableDates: Array.from({ length: 30 }, (_, i) => {
+              const date = new Date()
+              date.setDate(date.getDate() + i + 1)
+              return date
+            }),
+            description: attractionData.description,
+            category: attractionData.category,
+          }
+          
+          setAttraction(bookingAttraction)
+        } else {
+          throw new Error("Failed to load attraction details")
+        }
+      } catch (err) {
+        console.error("Error loading attraction:", err)
+        setError("Failed to load attraction details. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (attractionId) {
+      loadAttraction()
+    }
+  }, [attractionId])
 
   const steps = [
     { number: 1, title: "Select Date & Time", description: "Choose your visit date and time" },
@@ -79,7 +133,7 @@ export default function Booking({ attractionId, onBack }: BookingProps) {
     { number: 4, title: "Payment", description: "Complete your booking" },
   ]
 
-  const selectedTicket = attraction.ticketTypes.find((t) => t.id === ticketType)
+  const selectedTicket = attraction?.ticketTypes.find((t: any) => t.id === ticketType)
   const totalPrice = selectedTicket ? selectedTicket.price * visitors : 0
   const serviceFee = totalPrice * 0.05
   const discount = totalPrice > 200000 ? totalPrice * 0.1 : 0
@@ -98,11 +152,75 @@ export default function Booking({ attractionId, onBack }: BookingProps) {
   }
 
   const handleBooking = async () => {
+    if (!selectedDate || !selectedTime || !selectedTicket) return
+    
     setIsProcessing(true)
-    // Simulate booking process
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-    setIsProcessing(false)
-    setBookingComplete(true)
+    try {
+      // Create visit record in database
+      const visitData = {
+        attractionId: attraction.id,
+        visitDate: selectedDate.toISOString().split('T')[0],
+        visitTime: selectedTime,
+        visitors: visitors,
+        ticketType: ticketType,
+        totalPrice: finalTotal,
+        contactInfo: contactInfo,
+        paymentMethod: paymentMethod,
+        status: 'confirmed'
+      }
+      
+      const response = await touristApi.recordVisit(visitData)
+      
+      if (response.success) {
+        setBookingComplete(true)
+      } else {
+        throw new Error(response.message || "Booking failed")
+      }
+    } catch (err) {
+      console.error("Booking error:", err)
+      setError("Failed to complete booking. Please try again.")
+      setIsProcessing(false)
+    }
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Loading Attraction Details</h2>
+            <p className="text-slate-600 dark:text-slate-400">Please wait while we prepare your booking...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !attraction) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Unable to Load Booking</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {error || "Failed to load attraction details for booking."}
+            </p>
+            <div className="space-y-2">
+              <Button onClick={() => window.location.reload()} className="w-full">
+                Try Again
+              </Button>
+              <Button onClick={onBack} variant="outline" className="w-full">
+                Go Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   const canProceed = () => {
@@ -239,7 +357,7 @@ export default function Booking({ attractionId, onBack }: BookingProps) {
                         onSelect={setSelectedDate}
                         disabled={(date) =>
                           date < new Date() ||
-                          !attraction.availableDates.some((d) => d.toDateString() === date.toDateString())
+                          !attraction.availableDates.some((d: Date) => d.toDateString() === date.toDateString())
                         }
                         className="rounded-md border"
                       />
@@ -251,7 +369,7 @@ export default function Booking({ attractionId, onBack }: BookingProps) {
                           Available Time Slots
                         </h3>
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                          {attraction.timeSlots.map((time) => (
+                          {attraction.timeSlots.map((time: string) => (
                             <Button
                               key={time}
                               variant={selectedTime === time ? "default" : "outline"}
@@ -273,7 +391,7 @@ export default function Booking({ attractionId, onBack }: BookingProps) {
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Select Ticket Type</h3>
                       <div className="space-y-3">
-                        {attraction.ticketTypes.map((ticket) => (
+                        {attraction.ticketTypes.map((ticket: any) => (
                           <div
                             key={ticket.id}
                             className={cn(

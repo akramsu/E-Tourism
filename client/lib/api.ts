@@ -177,6 +177,219 @@ export const touristApi = {
   // Get featured attractions
   getFeaturedAttractions: (limit = 6) =>
     apiClient.get<ApiResponse<any[]>>(`/api/attractions/featured?limit=${limit}`),
+
+  // Get attraction reviews from visits
+  getAttractionReviews: (attractionId: number, params?: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/attractions/${attractionId}/reviews${query ? `?${query}` : ''}`)
+  },
+
+  // Submit a review for an attraction
+  submitReview: (reviewData: {
+    attractionId: number
+    rating: number
+    visitorFeedback: string
+    visitDate: string
+    duration?: number
+    amount?: number
+  }) => apiClient.post<ApiResponse<any>>('/api/attractions/review', reviewData),
+
+  // Get attraction images
+  getAttractionImages: (attractionId: number) =>
+    apiClient.get<ApiResponse<any[]>>(`/api/attractions/${attractionId}/images`),
+
+  // Get attractions by category
+  getAttractionsByCategory: (category: string, params?: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/attractions/category/${category}${query ? `?${query}` : ''}`)
+  },
+
+  // Get trending attractions
+  getTrendingAttractions: (limit = 10) =>
+    apiClient.get<ApiResponse<any[]>>(`/api/attractions/trending?limit=${limit}`),
+
+  // Get nearby attractions
+  getNearbyAttractions: (params: { 
+    latitude: number; 
+    longitude: number; 
+    radius?: number; 
+    limit?: number 
+  }) => {
+    const searchParams = new URLSearchParams()
+    searchParams.set('latitude', params.latitude.toString())
+    searchParams.set('longitude', params.longitude.toString())
+    if (params.radius) searchParams.set('radius', params.radius.toString())
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/attractions/nearby?${query}`)
+  },
+
+  // Get personalized recommendations
+  getPersonalizedRecommendations: (params?: { 
+    limit?: number; 
+    includeVisited?: boolean;
+    basedOn?: 'preferences' | 'history' | 'similar_users'
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.includeVisited) searchParams.set('includeVisited', 'true')
+    if (params?.basedOn) searchParams.set('basedOn', params.basedOn)
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/attractions/recommendations${query ? `?${query}` : ''}`)
+  },
+
+  // Get user's favorite attractions (wishlist)
+  getFavoriteAttractions: (params?: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/user/favorites${query ? `?${query}` : ''}`)
+  },
+
+  // Add attraction to favorites
+  addToFavorites: (attractionId: number) =>
+    apiClient.post<ApiResponse<any>>('/api/user/favorites', { attractionId }),
+
+  // Remove attraction from favorites
+  removeFromFavorites: (attractionId: number) =>
+    apiClient.delete<ApiResponse<void>>(`/api/user/favorites/${attractionId}`),
+
+  // Check if attraction is favorited
+  isFavorited: (attractionId: number) =>
+    apiClient.get<ApiResponse<{ favorited: boolean }>>(`/api/user/favorites/${attractionId}/status`),
+
+  // Search attractions with advanced filters
+  searchAttractions: (params: {
+    query?: string
+    categories?: string[]
+    minPrice?: number
+    maxPrice?: number
+    minRating?: number
+    location?: string
+    radius?: number
+    latitude?: number
+    longitude?: number
+    openNow?: boolean
+    hasParking?: boolean
+    wheelchairAccessible?: boolean
+    page?: number
+    limit?: number
+    sortBy?: 'name' | 'price' | 'rating' | 'distance' | 'popularity'
+    sortOrder?: 'asc' | 'desc'
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params.query) searchParams.set('query', params.query)
+    if (params.categories) params.categories.forEach(cat => searchParams.append('categories', cat))
+    if (params.minPrice !== undefined) searchParams.set('minPrice', params.minPrice.toString())
+    if (params.maxPrice !== undefined) searchParams.set('maxPrice', params.maxPrice.toString())
+    if (params.minRating !== undefined) searchParams.set('minRating', params.minRating.toString())
+    if (params.location) searchParams.set('location', params.location)
+    if (params.radius) searchParams.set('radius', params.radius.toString())
+    if (params.latitude) searchParams.set('latitude', params.latitude.toString())
+    if (params.longitude) searchParams.set('longitude', params.longitude.toString())
+    if (params.openNow) searchParams.set('openNow', 'true')
+    if (params.hasParking) searchParams.set('hasParking', 'true')
+    if (params.wheelchairAccessible) searchParams.set('wheelchairAccessible', 'true')
+    if (params.page) searchParams.set('page', params.page.toString())
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.sortBy) searchParams.set('sortBy', params.sortBy)
+    if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder)
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/attractions/search?${query}`)
+  },
+
+  // Get attraction availability and booking slots
+  getAttractionAvailability: (attractionId: number, params?: {
+    date?: string
+    month?: string
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.date) searchParams.set('date', params.date)
+    if (params?.month) searchParams.set('month', params.month)
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any>>(`/api/attractions/${attractionId}/availability${query ? `?${query}` : ''}`)
+  },
+
+  // Get attraction opening hours
+  getAttractionHours: (attractionId: number) =>
+    apiClient.get<ApiResponse<any>>(`/api/attractions/${attractionId}/hours`),
+
+  // Get attraction pricing details
+  getAttractionPricing: (attractionId: number) =>
+    apiClient.get<ApiResponse<any>>(`/api/attractions/${attractionId}/pricing`),
+
+  // Booking related APIs
+  // Create a booking/reservation
+  createBooking: (bookingData: {
+    attractionId: number
+    visitDate: string
+    timeSlot?: string
+    numberOfVisitors: number
+    ticketType: string
+    totalAmount: number
+    contactInfo: {
+      firstName: string
+      lastName: string
+      email: string
+      phone: string
+      specialRequests?: string
+    }
+    paymentMethod: string
+  }) => apiClient.post<ApiResponse<any>>('/api/bookings', bookingData),
+
+  // Get user's bookings
+  getUserBookings: (params?: { 
+    page?: number
+    limit?: number
+    status?: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+    upcomingOnly?: boolean
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.status) searchParams.set('status', params.status)
+    if (params?.upcomingOnly) searchParams.set('upcomingOnly', 'true')
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/bookings/my-bookings${query ? `?${query}` : ''}`)
+  },
+
+  // Get booking details
+  getBooking: (bookingId: number) =>
+    apiClient.get<ApiResponse<any>>(`/api/bookings/${bookingId}`),
+
+  // Cancel a booking
+  cancelBooking: (bookingId: number, reason?: string) =>
+    apiClient.put<ApiResponse<any>>(`/api/bookings/${bookingId}/cancel`, { reason }),
+
+  // Update booking
+  updateBooking: (bookingId: number, updateData: {
+    visitDate?: string
+    timeSlot?: string
+    numberOfVisitors?: number
+    specialRequests?: string
+  }) => apiClient.put<ApiResponse<any>>(`/api/bookings/${bookingId}`, updateData),
+
+  // Process payment for booking
+  processPayment: (paymentData: {
+    bookingId: number
+    paymentMethod: string
+    paymentDetails: any
+  }) => apiClient.post<ApiResponse<any>>('/api/bookings/payment', paymentData),
 }
 
 // User profile API functions
@@ -305,6 +518,69 @@ export const userApi = {
       return response.json()
     })
   },
+
+  // Get user's favorite attractions (also available in touristApi)
+  getFavorites: (params?: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/user/favorites${query ? `?${query}` : ''}`)
+  },
+
+  // Add attraction to favorites (also available in touristApi)
+  addToFavorites: (attractionId: number) =>
+    apiClient.post<ApiResponse<any>>('/api/user/favorites', { attractionId }),
+
+  // Remove attraction from favorites (also available in touristApi)
+  removeFromFavorites: (attractionId: number) =>
+    apiClient.delete<ApiResponse<void>>(`/api/user/favorites/${attractionId}`),
+
+  // Get user preferences
+  getPreferences: () =>
+    apiClient.get<ApiResponse<any>>('/api/user/preferences'),
+
+  // Update user preferences
+  updatePreferences: (preferences: {
+    preferredCategories?: string[]
+    budgetRange?: { min: number; max: number }
+    travelRadius?: number
+    interests?: string[]
+    accessibility?: string[]
+    language?: string
+    currency?: string
+  }) => apiClient.put<ApiResponse<any>>('/api/user/preferences', preferences),
+
+  // Get user's travel history/statistics
+  getTravelHistory: (params?: {
+    page?: number
+    limit?: number
+    year?: number
+    month?: number
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.year) searchParams.set('year', params.year.toString())
+    if (params?.month) searchParams.set('month', params.month.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get<ApiResponse<any[]>>(`/api/user/travel-history${query ? `?${query}` : ''}`)
+  },
+
+  // Get user achievements/badges
+  getAchievements: () =>
+    apiClient.get<ApiResponse<any[]>>('/api/user/achievements'),
+
+  // Update user location/GPS coordinates
+  updateLocation: (locationData: {
+    latitude: number
+    longitude: number
+    address?: string
+    city?: string
+    country?: string
+  }) => apiClient.put<ApiResponse<any>>('/api/user/location', locationData),
 }
 
 // Owner-specific API functions for attraction management and analytics
