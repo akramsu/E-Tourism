@@ -1114,22 +1114,12 @@ export const authorityApi = {
 
   // Update authority profile
   updateProfile: (profileData: {
+    username?: string
     email?: string
     phoneNumber?: string
+    birthDate?: string | null
     postcode?: string
-    bio?: string
-    notifications?: {
-      emailAlerts?: boolean
-      smsAlerts?: boolean
-      weeklyReports?: boolean
-      monthlyReports?: boolean
-    }
-    preferences?: {
-      defaultChartType?: string
-      dateFormat?: string
-      timezone?: string
-      theme?: string
-    }
+    gender?: string
   }) => apiClient.put<ApiResponse<any>>('/api/authority/profile', profileData),
 
   // Upload profile picture

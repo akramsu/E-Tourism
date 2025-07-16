@@ -3020,18 +3020,34 @@ const updateProfile = async (req, res) => {
       username,
       email,
       phoneNumber,
-      position,
-      department,
-      bio,
-      preferences
+      birthDate,
+      postcode,
+      gender
     } = req.body
 
-    // Prepare update data
+    console.log('Authority profile update request:', {
+      userId,
+      username,
+      email,
+      phoneNumber,
+      birthDate,
+      postcode,
+      gender
+    })
+
+    // Prepare update data - only include fields that exist in database
     const updateData = {}
     
-    if (username) updateData.username = username
-    if (email) updateData.email = email
-    if (phoneNumber) updateData.phoneNumber = phoneNumber
+    if (username !== undefined) updateData.username = username
+    if (email !== undefined) updateData.email = email
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber
+    if (birthDate !== undefined) {
+      updateData.birthDate = birthDate ? new Date(birthDate) : null
+    }
+    if (postcode !== undefined) updateData.postcode = postcode
+    if (gender !== undefined) updateData.gender = gender
+
+    console.log('Update data prepared:', updateData)
 
     // Update user profile
     const updatedProfile = await prisma.user.update({
@@ -3054,6 +3070,8 @@ const updateProfile = async (req, res) => {
         }
       }
     })
+
+    console.log('Profile updated successfully')
 
     res.status(200).json({
       success: true,
@@ -3081,7 +3099,14 @@ const uploadProfilePicture = async (req, res) => {
   try {
     const userId = req.user.id
     
+    console.log('📸 Profile picture upload request:', {
+      userId,
+      hasFiles: !!req.files,
+      fileKeys: req.files ? Object.keys(req.files) : []
+    })
+    
     if (!req.files || !req.files.profilePicture) {
+      console.log('❌ No profile picture in request')
       return res.status(400).json({
         success: false,
         message: 'No profile picture uploaded'
@@ -3090,8 +3115,22 @@ const uploadProfilePicture = async (req, res) => {
 
     const profilePicture = req.files.profilePicture
     
+    console.log('📊 File details:', {
+      name: profilePicture.name,
+      size: profilePicture.size,
+      mimetype: profilePicture.mimetype,
+      hasData: !!profilePicture.data,
+      dataLength: profilePicture.data?.length || 0
+    })
+    
     // Convert image to base64 string for storage (since we're using LongText in DB)
     const base64Image = `data:${profilePicture.mimetype};base64,${profilePicture.data.toString('base64')}`
+
+    console.log('🔄 Base64 conversion:', {
+      originalSize: profilePicture.size,
+      base64Length: base64Image.length,
+      preview: base64Image.substring(0, 100) + '...'
+    })
 
     // Update user profile picture
     const updatedUser = await prisma.user.update({
@@ -3101,6 +3140,11 @@ const uploadProfilePicture = async (req, res) => {
         id: true,
         profilePicture: true
       }
+    })
+
+    console.log('✅ Profile picture updated in database:', {
+      userId: updatedUser.id,
+      pictureLength: updatedUser.profilePicture?.length || 0
     })
 
     res.status(200).json({
