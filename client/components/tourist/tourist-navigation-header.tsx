@@ -136,8 +136,7 @@ export default function TouristNavigationHeader({ currentPage, onPageChange, onS
           {/* Logo and Brand */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <Logo size="md" className="flex-shrink-0" />
-              <span className="font-bold text-xl text-slate-900 dark:text-white">TourEase</span>
+              <Logo size="sm" className="flex-shrink-0" />
             </div>
 
             {/* Desktop Navigation */}
