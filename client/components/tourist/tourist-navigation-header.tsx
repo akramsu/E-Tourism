@@ -37,12 +37,14 @@ import {
   HelpCircle,
   Menu,
   X,
+  Bot,
 } from "lucide-react"
 
 interface TouristNavigationHeaderProps {
   currentPage: string
   onPageChange: (page: string) => void
   onSearch?: (query: string) => void
+  onOpenAIChat?: () => void
 }
 
 interface MenuItemBase {
@@ -58,7 +60,7 @@ interface SeparatorItem {
 
 type MenuItem = MenuItemBase | SeparatorItem
 
-export default function TouristNavigationHeader({ currentPage, onPageChange, onSearch }: TouristNavigationHeaderProps) {
+export default function TouristNavigationHeader({ currentPage, onPageChange, onSearch, onOpenAIChat }: TouristNavigationHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -207,6 +209,18 @@ export default function TouristNavigationHeader({ currentPage, onPageChange, onS
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-3">
+            {/* AI Chat Assistant */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="relative group"
+              onClick={onOpenAIChat}
+              title="AI Travel Assistant"
+            >
+              <Bot className="h-5 w-5 text-blue-600 group-hover:text-blue-700" />
+              <span className="sr-only">AI Travel Assistant</span>
+            </Button>
+
             {/* Notifications */}
             <Button variant="ghost" size="sm" className="relative">
               <Bell className="h-5 w-5" />

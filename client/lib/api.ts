@@ -1462,3 +1462,34 @@ export const authorityApi = {
     chatHistory?: Array<{ role: 'user' | 'assistant', content: string }>
   }) => apiClient.post<ApiResponse<any>>('/api/authority/chat', chatData),
 }
+
+// AI Chat API functions for tourists
+export const aiChatApi = {
+  // Send message to AI assistant
+  sendMessage: (message: string, chatHistory: any[] = []) =>
+    apiClient.post<ApiResponse<{
+      message: string
+      suggestions: string[]
+      dataInsights: string[]
+      actionItems: string[]
+      timestamp: string
+    }>>('/api/ai-chat/message', { message, chatHistory }),
+
+  // Get chat history
+  getChatHistory: (limit: number = 20) =>
+    apiClient.get<ApiResponse<{
+      id: number
+      userMessage: string
+      aiResponse: string
+      suggestions: string[]
+      timestamp: string
+    }[]>>(`/api/ai-chat/history?limit=${limit}`),
+
+  // Get personalized recommendations
+  getRecommendations: () =>
+    apiClient.get<ApiResponse<{
+      recommendations: string[]
+      insights: string[]
+      timestamp: string
+    }>>('/api/ai-chat/recommendations'),
+}

@@ -39,6 +39,7 @@ import UserProfile from "@/pages/tourist/user-profile"
 import Recommendations from "@/pages/tourist/recommendations"
 import EventsActivities from "@/pages/tourist/events-activities"
 import Booking from "@/pages/tourist/booking"
+import AIChatAssistant from "@/components/ai/ai-chat-assistant"
 
 type Page = "landing" | "signin" | "signup" | "dashboard"
 
@@ -47,6 +48,7 @@ function AppContent() {
   const [dashboardPage, setDashboardPage] = useState("Dashboard")
   const [selectedAttractionId, setSelectedAttractionId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const { user, needsProfileCompletion, needsAttractionCreation, markAttractionCreated } = useAuth()
 
   // Handle navigation after authentication
@@ -296,8 +298,14 @@ function AppContent() {
             currentPage={dashboardPage}
             onPageChange={handleTouristPageChange}
             onSearch={handleSearch}
+            onOpenAIChat={() => setIsAIChatOpen(true)}
           />
           <div>{renderTouristContent()}</div>
+          <AIChatAssistant
+            isOpen={isAIChatOpen}
+            onClose={() => setIsAIChatOpen(false)}
+            onAttractionSelect={handleAttractionSelect}
+          />
           <ThemeToggle />
         </div>
       )
