@@ -101,12 +101,12 @@ export default function SearchResults({ onAttractionSelect, searchQuery }: Searc
           category: attraction.category || "General",
           rating: attraction.rating || 0,
           reviews: attraction.totalVisits || 0,
-          price: attraction.priceFormatted || "Free",
+          price: attraction.price ? `IDR ${attraction.price.toLocaleString()}` : "Free",
           priceValue: attraction.price || 0,
-          image: attraction.images?.[0]?.url || "/placeholder.svg",
-          location: attraction.location || "Unknown",
+          image: attraction.image || "/placeholder.svg",
+          location: attraction.address || "Unknown",
           description: attraction.description || "",
-          tags: attraction.tags ? attraction.tags.split(',') : [],
+          tags: attraction.category ? [attraction.category] : [],
           timeToVisit: "2-3 hours", // Default value
           distance: "1 km", // Default value - would need geolocation
           openNow: true, // Default value - would need hours logic

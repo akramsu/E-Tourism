@@ -312,7 +312,7 @@ export default function EventsActivities({ onEventSelect }: EventsActivitiesProp
                   <span>All Events</span>
                 </TabsTrigger>
                 <TabsTrigger value="calendar" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
+                  <CalendarIcon className="h-4 w-4" />
                   <span>Calendar</span>
                 </TabsTrigger>
               </TabsList>

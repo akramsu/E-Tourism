@@ -370,17 +370,41 @@ export default function AttractionDetails({
 
       {/* Hero Image Gallery */}
       <section className="relative">
-        <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
-          <img
-            src={
-              attraction.images.length > 0 
-                ? attraction.images[selectedImageIndex]?.imageUrl || "/placeholder.svg"
-                : "/placeholder.svg?height=400&width=600"
-            }
-            alt={attraction.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/20" />
+        <div className="relative w-full aspect-[4/3] max-h-[600px] overflow-hidden bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950 dark:via-purple-950 dark:to-pink-950">
+          {/* Elegant Background Pattern */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-10 right-10 w-40 h-40 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full blur-3xl"></div>
+            <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-gradient-to-br from-pink-400 to-blue-400 rounded-full blur-2xl"></div>
+            <div className="absolute top-1/4 right-1/3 w-28 h-28 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-3xl"></div>
+          </div>
+          
+          {/* Decorative Grid Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="w-full h-full" style={{
+              backgroundImage: `
+                linear-gradient(45deg, transparent 24%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,0.3) 75%, rgba(255,255,255,0.3) 76%, transparent 77%),
+                linear-gradient(-45deg, transparent 24%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,0.3) 75%, rgba(255,255,255,0.3) 76%, transparent 77%)
+              `,
+              backgroundSize: '30px 30px'
+            }}></div>
+          </div>
+
+          {/* Main Image Container - 4:3 Ratio Centered */}
+          <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+            <div className="relative w-full max-w-4xl aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/20 backdrop-blur-sm">
+              <img
+                src={
+                  attraction.images.length > 0 
+                    ? attraction.images[selectedImageIndex]?.imageUrl || "/placeholder.svg"
+                    : "/placeholder.svg?height=600&width=800"
+                }
+                alt={attraction.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+            </div>
+          </div>
 
           {/* Gallery Navigation - only show if multiple images */}
           {attraction.images.length > 1 && (
@@ -409,22 +433,35 @@ export default function AttractionDetails({
                     <ZoomIn className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Photo Gallery</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold">Photo Gallery - {attraction.name}</DialogTitle>
                   </DialogHeader>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                     {attraction.images.map((image, index) => (
-                      <img
+                      <div
                         key={image.id}
-                        src={image.imageUrl || "/placeholder.svg"}
-                        alt={`${attraction.name} ${index + 1}`}
-                        className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                        className="relative group cursor-pointer"
                         onClick={() => {
                           setSelectedImageIndex(index)
                           setShowImageModal(false)
                         }}
-                      />
+                      >
+                        <div className="aspect-[4/3] rounded-xl overflow-hidden ring-2 ring-slate-200 dark:ring-slate-600 group-hover:ring-blue-400 transition-all duration-300">
+                          <img
+                            src={image.imageUrl || "/placeholder.svg"}
+                            alt={`${attraction.name} ${index + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 rounded-xl flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="bg-white/90 dark:bg-slate-800/90 rounded-full p-2">
+                              <ZoomIn className="h-5 w-5 text-slate-700 dark:text-slate-300" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </DialogContent>
@@ -444,18 +481,49 @@ export default function AttractionDetails({
 
         {/* Thumbnail Strip - only show if multiple images */}
         {attraction.images.length > 1 && (
-          <div className="hidden sm:flex gap-2 p-4 bg-white dark:bg-slate-800 border-b overflow-x-auto">
-            {attraction.images.map((image, index) => (
-              <img
-                key={image.id}
-                src={image.imageUrl || "/placeholder.svg"}
-                alt={`Thumbnail ${index + 1}`}
-                className={`w-16 h-16 object-cover rounded-lg cursor-pointer transition-all ${
-                  index === selectedImageIndex ? "ring-2 ring-blue-600" : "opacity-60 hover:opacity-100"
-                }`}
-                onClick={() => setSelectedImageIndex(index)}
-              />
-            ))}
+          <div className="bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 border-b shadow-inner">
+            <div className="max-w-4xl mx-auto px-4 py-6">
+              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                  Gallery ({attraction.images.length})
+                </span>
+                <div className="flex gap-3">
+                  {attraction.images.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className={`relative group cursor-pointer transition-all duration-300 ${
+                        index === selectedImageIndex 
+                          ? "transform scale-110 z-10" 
+                          : "hover:scale-105"
+                      }`}
+                      onClick={() => setSelectedImageIndex(index)}
+                    >
+                      <div className={`w-16 h-16 rounded-xl overflow-hidden ${
+                        index === selectedImageIndex
+                          ? "ring-3 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-700"
+                          : "ring-2 ring-slate-200 dark:ring-slate-600 group-hover:ring-blue-300 dark:group-hover:ring-blue-600"
+                      }`}>
+                        <img
+                          src={image.imageUrl || "/placeholder.svg"}
+                          alt={`Thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover transition-all duration-300"
+                        />
+                      </div>
+                      {index === selectedImageIndex && (
+                        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {attraction.images.length > 6 && (
+                    <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400 text-xs font-medium">
+                      +{attraction.images.length - 6}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </section>
