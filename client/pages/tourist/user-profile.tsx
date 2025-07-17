@@ -89,37 +89,100 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
         setLoading(true)
         setError(null)
 
-        // Load user profile
-        const profileResponse = await userApi.getProfile()
-        if (profileResponse.success && profileResponse.data) {
-          const profile = profileResponse.data
+        // Check if user is authenticated
+        if (!user) {
+          console.log("No user found, setting default profile")
           setProfileData(prev => ({
             ...prev,
-            userId: profile.id,
-            username: profile.username || profile.name,
-            email: profile.email,
-            phoneNumber: profile.phoneNumber || "",
-            birthDate: profile.birthDate || "",
-            postcode: profile.postcode || "",
-            gender: profile.gender || "",
-            profilePicture: profile.profilePicture || "/placeholder.svg?height=120&width=120",
-            bio: profile.bio || "",
-            location: profile.location || "",
-            joinDate: profile.createdDate || "",
+            userId: 0,
+            username: "Guest User",
+            email: "",
+          }))
+          setStats({
+            totalVisits: 0,
+            averageRating: 0,
+            reviewsWritten: 0,
+            photosShared: 0,
+            memberSince: "2024",
+          })
+          setLoading(false)
+          return
+        }
+
+        console.log("Loading profile data for user:", user.id)
+
+        // Load user profile with better error handling
+        try {
+          const profileResponse = await userApi.getProfile()
+          console.log("Profile response:", profileResponse)
+          
+          if (profileResponse.success && profileResponse.data) {
+            const profile = profileResponse.data
+            setProfileData(prev => ({
+              ...prev,
+              userId: profile.id,
+              username: profile.username || profile.name || user.username || "Tourist",
+              email: profile.email || user.email || "",
+              phoneNumber: profile.phoneNumber || "",
+              birthDate: profile.birthDate || "",
+              postcode: profile.postcode || "",
+              gender: profile.gender || "",
+              profilePicture: profile.profilePicture || "/placeholder.svg?height=120&width=120",
+              bio: profile.bio || "",
+              location: profile.location || "",
+              joinDate: profile.createdDate || "",
+            }))
+          } else {
+            // Fallback to user context data
+            console.log("Using fallback user data")
+            setProfileData(prev => ({
+              ...prev,
+              userId: user.id,
+              username: user.username || "Tourist",
+              email: user.email || "",
+            }))
+          }
+        } catch (profileError) {
+          console.warn("Could not load user profile:", profileError)
+          // Fallback to user context data
+          setProfileData(prev => ({
+            ...prev,
+            userId: user.id,
+            username: user.username || "Tourist",
+            email: user.email || "",
           }))
         }
 
-        // Load user statistics
+        // Load user statistics with fallback
         try {
           const statsResponse = await userApi.getUserStats()
+          console.log("Stats response:", statsResponse)
+          
           if (statsResponse.success && statsResponse.data) {
             setStats(statsResponse.data)
+          } else {
+            // Set default stats
+            setStats({
+              totalVisits: 0,
+              averageRating: 0,
+              reviewsWritten: 0,
+              photosShared: 0,
+              memberSince: new Date().getFullYear().toString(),
+            })
           }
         } catch (statsError) {
           console.warn("Could not load user stats:", statsError)
+          // Set default stats
+          setStats({
+            totalVisits: 0,
+            averageRating: 0,
+            reviewsWritten: 0,
+            photosShared: 0,
+            memberSince: new Date().getFullYear().toString(),
+          })
         }
 
-        // Load visit history (if available)
+        // Load visit history (if available) with fallback
         try {
           const visitsResponse = await touristApi.getUserVisits({ limit: 100 })
           if (visitsResponse.success && visitsResponse.data) {
@@ -135,14 +198,15 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
               images: visit.images || [],
             }))
             setVisitHistory(transformedVisits)
+          } else {
+            setVisitHistory([])
           }
         } catch (visitsError) {
           console.warn("Could not load visit history:", visitsError)
-          // Set some mock data for demonstration
           setVisitHistory([])
         }
 
-        // Load wishlist (favorites)
+        // Load wishlist (favorites) with fallback
         try {
           const wishlistResponse = await userApi.getFavorites()
           if (wishlistResponse.success && wishlistResponse.data) {
@@ -156,6 +220,8 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
               addedDate: fav.createdDate,
             }))
             setWishlist(transformedWishlist)
+          } else {
+            setWishlist([])
           }
         } catch (wishlistError) {
           console.warn("Could not load wishlist:", wishlistError)
@@ -168,17 +234,34 @@ export default function UserProfile({ onAttractionSelect }: UserProfileProps) {
 
       } catch (err) {
         console.error("Error loading profile data:", err)
-        setError("Failed to load profile data. Please try again.")
+        
+        // Set fallback data instead of showing error
+        if (user) {
+          setProfileData(prev => ({
+            ...prev,
+            userId: user.id,
+            username: user.username || "Tourist",
+            email: user.email || "",
+          }))
+          setStats({
+            totalVisits: 0,
+            averageRating: 0,
+            reviewsWritten: 0,
+            photosShared: 0,
+            memberSince: new Date().getFullYear().toString(),
+          })
+          setVisitHistory([])
+          setWishlist([])
+          setAchievements(generateAchievements({}, 0))
+        } else {
+          setError("Unable to load profile. Please try logging in again.")
+        }
       } finally {
         setLoading(false)
       }
     }
 
-    if (user) {
-      loadProfileData()
-    } else {
-      setLoading(false)
-    }
+    loadProfileData()
   }, [user])
 
   // Generate achievements based on user activity

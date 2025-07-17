@@ -26,6 +26,7 @@ import {
 import type React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { touristApi, userApi } from "@/lib/api"
+import InteractiveMap from "@/components/ui/interactive-map"
 
 interface TouristDashboardProps {
   onPageChange: (page: string) => void
@@ -348,29 +349,29 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
   const quickStats = userStats ? [
     { 
       label: "Attractions Visited", 
-      value: userStats.attractionsVisited.toString(), 
-      change: `+${userStats.monthlyVisits} this month`, 
+      value: (userStats.attractionsVisited || 0).toString(), 
+      change: `+${userStats.monthlyVisits || 0} this month`, 
       icon: MapPin, 
       color: "text-blue-600" 
     },
     { 
       label: "Average Rating Given", 
-      value: userStats.averageRating.toFixed(1), 
-      change: userStats.averageRating >= 4 ? "★ Excellent" : userStats.averageRating >= 3 ? "★ Good" : "★ Average", 
+      value: (userStats.averageRating || 0).toFixed(1), 
+      change: (userStats.averageRating || 0) >= 4 ? "★ Excellent" : (userStats.averageRating || 0) >= 3 ? "★ Good" : "★ Average", 
       icon: Star, 
       color: "text-yellow-600" 
     },
     { 
       label: "Total Experiences", 
-      value: userStats.totalExperiences.toString(), 
-      change: `+${userStats.monthlyExperiences} this month`, 
+      value: (userStats.totalExperiences || 0).toString(), 
+      change: `+${userStats.monthlyExperiences || 0} this month`, 
       icon: Calendar, 
       color: "text-green-600" 
     },
     { 
       label: "Travel Points", 
-      value: userStats.travelPoints.toLocaleString(), 
-      change: `+${userStats.pointsEarned} earned`, 
+      value: (userStats.travelPoints || 0).toLocaleString(), 
+      change: `+${userStats.pointsEarned || 0} earned`, 
       icon: Award, 
       color: "text-purple-600" 
     },
@@ -861,32 +862,60 @@ export default function TouristDashboard({ onPageChange, onAttractionSelect }: T
           {/* Interactive Map Preview */}
           <Card className="lg:col-span-2 border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Navigation className="h-5 w-5 text-blue-600" />
-                Explore Map
-              </CardTitle>
-              <CardDescription>Discover attractions near you</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="relative h-48 sm:h-64 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-lg mx-4 sm:mx-6 mb-4 sm:mb-6 flex items-center justify-center overflow-hidden">
-                {/* Animated Map Placeholder */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 animate-pulse"></div>
-                <div className="text-center relative z-10">
-                  <MapPin className="h-8 sm:h-12 w-8 sm:w-12 text-blue-600 mx-auto mb-2 animate-bounce" />
-                  <p className="text-slate-600 dark:text-slate-400 mb-4">Interactive map coming soon</p>
-                  <Button
-                    onClick={() => onPageChange("Search Results")}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    <Navigation className="h-4 w-4 mr-2" />
-                    Explore Map
-                  </Button>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Navigation className="h-5 w-5 text-blue-600" />
+                  Explore Interactive Map
                 </div>
-
-                {/* Floating Map Markers */}
-                <div className="absolute top-4 left-4 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
-                <div className="absolute bottom-6 right-8 w-3 h-3 bg-blue-500 rounded-full animate-ping delay-500"></div>
-                <div className="absolute top-1/2 left-1/3 w-3 h-3 bg-green-500 rounded-full animate-ping delay-1000"></div>
+                <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  {featuredAttractions.length} Attractions
+                </Badge>
+              </CardTitle>
+              <CardDescription>Discover attractions and plan your route</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6">
+              <InteractiveMap
+                attractions={featuredAttractions.filter(attr => attr.latitude && attr.longitude).map(attr => ({
+                  id: attr.id,
+                  name: attr.name,
+                  latitude: attr.latitude!,
+                  longitude: attr.longitude!,
+                  category: attr.category,
+                  rating: attr.rating,
+                  image: attr.image,
+                  price: attr.price,
+                }))}
+                center={[-7.7956, 110.3695]} // Yogyakarta, Indonesia
+                zoom={10}
+                height="h-48 sm:h-64"
+                onAttractionClick={onAttractionSelect}
+              />
+              
+              {/* Map Controls */}
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                    <span>Featured</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                    <span>Nature</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                    <span>Culture</span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange("Search Results")}
+                  className="hover:bg-blue-50 dark:hover:bg-slate-700"
+                >
+                  <Navigation className="h-4 w-4 mr-2" />
+                  Full Map View
+                </Button>
               </div>
             </CardContent>
           </Card>

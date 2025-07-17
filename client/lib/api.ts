@@ -396,11 +396,11 @@ export const touristApi = {
 export const userApi = {
   // Get current user profile
   getProfile: () =>
-    apiClient.get<ApiResponse<any>>('/api/user/profile'),
+    apiClient.get<ApiResponse<any>>('/api/auth/profile'),
 
   // Get current user profile (fresh from database)
   getCurrentUser: () =>
-    apiClient.get<ApiResponse<any>>('/api/user/profile'),
+    apiClient.get<ApiResponse<any>>('/api/auth/profile'),
 
   // Update user profile
   updateProfile: (profileData: {
@@ -413,14 +413,14 @@ export const userApi = {
     businessName?: string
     businessType?: string
     bio?: string
-  }) => apiClient.put<ApiResponse<any>>('/api/user/profile', profileData),
+  }) => apiClient.put<ApiResponse<any>>('/api/auth/profile', profileData),
 
   // Upload profile picture
   uploadProfilePicture: (imageFile: File) => {
     const formData = new FormData()
     formData.append('profilePicture', imageFile)
     
-    return fetch(`${API_BASE_URL}/api/user/profile/picture`, {
+    return fetch(`${API_BASE_URL}/api/auth/profile/picture`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`
@@ -442,9 +442,18 @@ export const userApi = {
     confirmPassword: string
   }) => apiClient.put<ApiResponse<any>>('/api/user/change-password', passwordData),
 
-  // Get user statistics (for business owners)
-  getUserStats: () =>
-    apiClient.get<ApiResponse<any>>('/api/user/stats'),
+  // Get user statistics (for tourists - mock data since endpoint doesn't exist yet)
+  getUserStats: () => 
+    Promise.resolve({
+      success: true,
+      data: {
+        totalVisits: 0,
+        averageRating: 0,
+        reviewsWritten: 0,
+        photosShared: 0,
+        memberSince: new Date().getFullYear().toString(),
+      }
+    }),
 
   // Update notification settings
   updateNotificationSettings: (settings: {
@@ -519,7 +528,7 @@ export const userApi = {
     })
   },
 
-  // Get user's favorite attractions (also available in touristApi)
+  // Get user's favorite attractions (use correct tourist route)
   getFavorites: (params?: { page?: number; limit?: number }) => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
