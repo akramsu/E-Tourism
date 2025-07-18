@@ -172,9 +172,9 @@ export default function AIChatAssistant({ isOpen, onClose, onAttractionSelect }:
   if (!isOpen) return null
 
   return (
-    <Card className={`fixed bottom-4 right-4 z-50 w-96 shadow-2xl border-2 border-blue-200 dark:border-blue-800 transition-all duration-300 ${
-      isMinimized ? 'h-16' : 'h-[600px]'
-    }`}>
+    <Card className={`fixed bottom-4 right-4 z-50 shadow-2xl border-2 border-blue-200 dark:border-blue-800 transition-all duration-300 ${
+      isMinimized ? 'h-16 w-[300px] sm:w-[420px]' : 'h-[600px] max-h-[calc(100vh-2rem)] w-[340px] sm:w-[420px]'
+    } max-w-[calc(100vw-2rem)]`}>
       <CardHeader className="pb-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -208,7 +208,7 @@ export default function AIChatAssistant({ isOpen, onClose, onAttractionSelect }:
       </CardHeader>
 
       {!isMinimized && (
-        <CardContent className="p-0 flex flex-col h-[calc(600px-80px)]">
+        <CardContent className="p-0 flex flex-col h-[calc(600px-80px)] max-h-[calc(100vh-6rem)]">
           {/* Messages Area */}
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
@@ -228,13 +228,13 @@ export default function AIChatAssistant({ isOpen, onClose, onAttractionSelect }:
                   )}
 
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[85%] rounded-lg p-3 ${
                       message.role === 'user'
                         ? 'bg-blue-600 text-white ml-auto'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     
                     {/* Suggestions */}
                     {message.suggestions && message.suggestions.length > 0 && (
@@ -249,7 +249,7 @@ export default function AIChatAssistant({ isOpen, onClose, onAttractionSelect }:
                               variant="outline"
                               size="sm"
                               onClick={() => handleSuggestionClick(suggestion)}
-                              className="text-xs h-7 px-2"
+                              className="text-xs h-7 px-2 break-words whitespace-normal text-left max-w-full"
                             >
                               {suggestion}
                             </Button>
@@ -266,7 +266,7 @@ export default function AIChatAssistant({ isOpen, onClose, onAttractionSelect }:
                           Insights:
                         </p>
                         {message.dataInsights.map((insight, idx) => (
-                          <Badge key={idx} variant="secondary" className="mr-1 mb-1 text-xs">
+                          <Badge key={idx} variant="secondary" className="mr-1 mb-1 text-xs break-words whitespace-normal max-w-full">
                             {insight}
                           </Badge>
                         ))}
@@ -284,7 +284,7 @@ export default function AIChatAssistant({ isOpen, onClose, onAttractionSelect }:
                           {message.actionItems.map((item, idx) => (
                             <li key={idx} className="flex items-start gap-1">
                               <MapPin className="h-3 w-3 mt-0.5 text-blue-600 flex-shrink-0" />
-                              {item}
+                              <span className="break-words">{item}</span>
                             </li>
                           ))}
                         </ul>

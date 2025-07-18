@@ -35,6 +35,7 @@ model User {
   visits           Visit[]            @relation("UserToVisit")
   favorites        Favorite[]         @relation("UserToFavorite")
   bookings         Booking[]          @relation("UserToBooking")
+  chatMessages     ChatMessage[]      @relation("UserToChatMessage")
 
   @@index([roleId], map: "user_roleId_fkey")
   @@map("user")
@@ -177,6 +178,21 @@ model Booking {
   @@index([userId], map: "booking_userId_fkey")
   @@index([attractionId], map: "booking_attractionId_fkey")
   @@map("bookings")
+}
+
+model ChatMessage {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  userMessage  String   @db.Text
+  aiResponse   String   @db.Text
+  suggestions  String?  @db.Text
+  dataInsights String?  @db.Text
+  actionItems  String?  @db.Text
+  timestamp    DateTime @default(now())
+  user         User     @relation("UserToChatMessage", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "chat_message_userId_fkey")
+  @@map("chat_messages")
 }
 
 enum RoleType {
