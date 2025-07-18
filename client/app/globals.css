@@ -211,3 +211,35 @@
   background-color: #f3f4f6 !important;
   color: #1f2937 !important;
 }
+
+/* Hide Next.js development error overlay and indicators */
+#__next-build-watcher,
+.__next-dev-overlay-container,
+.nextjs-toast-errors,
+.__next,
+[data-nextjs-dialog],
+[data-nextjs-dialog-overlay],
+#__NEXT_DATA__,
+.__next-build-watcher {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide Next.js compilation indicator */
+.__next-dev-overlay-container > div,
+.__next-dev-overlay-container iframe {
+  display: none !important;
+}
+
+/* Completely remove Next.js error overlay */
+body.__next-dev-overlay-visible {
+  overflow: auto !important;
+}
+
+/* Hide webpack HMR notifications */
+#webpack-dev-server-client-overlay,
+#webpack-dev-server-client-overlay div {
+  display: none !important;
+}
