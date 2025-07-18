@@ -9,19 +9,37 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  devIndicators: {
-    buildActivity: process.env.NEXT_DEV_INDICATORS !== 'false',
-    buildActivityPosition: 'bottom-right',
+  // Hide Next.js error overlay and icons
+  reactStrictMode: false,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
+  // Suppress warnings and errors in development
   onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
     maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
     pagesBufferLength: 2,
   },
-  // Disable error overlay in development
-  ...(process.env.NODE_ENV === 'development' && {
-    reactStrictMode: false,
-    swcMinify: false,
-  }),
+  // Custom webpack config
+  webpack: (config, { dev, isServer }) => {
+    // Suppress all warnings in development
+    config.infrastructureLogging = {
+      level: 'error',
+    };
+    
+    config.stats = {
+      warnings: false,
+      errors: false,
+    };
+    
+    // Hide source maps in development
+    if (dev) {
+      config.devtool = false;
+    }
+    
+    return config;
+  },
 }
 
 export default nextConfig

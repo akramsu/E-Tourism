@@ -11,6 +11,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Hide Next.js error overlays */}
+        <script src="/hide-errors.js" async />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   )
