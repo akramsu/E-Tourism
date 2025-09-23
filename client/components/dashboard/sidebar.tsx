@@ -9,6 +9,7 @@ import {
   Settings,
   TrendingUp,
   Users,
+  User,
   Bell,
   Search,
   Filter,
@@ -158,7 +159,8 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
         { title: "Visitor Analysis", page: "Visitor Analysis", icon: Users },
         { title: "Revenue Analytics", page: "Revenue Analytics", icon: BarChart3 },
         { title: "Forecasts & Planning", page: "Forecasts & Planning", icon: TrendingUp },
-        { title: "Attraction Management", page: "Attraction Management", icon: Building2 },
+        { title: "Manage Attraction", page: "Manage Attraction", icon: Building2 },
+        { title: "Reports", page: "Reports", icon: FileText },
       ]
 
     // Add badges based on live data
@@ -419,8 +421,14 @@ export function AppSidebar({ currentPage, onPageChange, onProfileClick }: AppSid
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onProfileClick}>Profile Settings</DropdownMenuItem>
-                <DropdownMenuItem>Account Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPageChange("Profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPageChange("Settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Account Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   Preferences

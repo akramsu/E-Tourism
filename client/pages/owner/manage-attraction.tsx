@@ -484,3 +484,5 @@ export function ManageAttraction() {
     </div>
   )
 }
+
+export default ManageAttraction

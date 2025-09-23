@@ -70,7 +70,12 @@ interface SidebarStats {
   totalAttractions?: number
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps {
+  currentPage?: string
+  onPageChange?: (page: string) => void
+}
+
+export function AppSidebar({ currentPage, onPageChange, ...props }: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuth()
   const [sidebarStats, setSidebarStats] = useState<SidebarStats>({
     unreadNotifications: 0,
@@ -168,6 +173,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return baseItems.map(item => {
         let badge: string | undefined
         let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "secondary"
+        const isActive = currentPage === item.title
 
         switch (item.title) {
           case "City Overview":
@@ -204,7 +210,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             break
         }
 
-        return { ...item, badge, badgeVariant }
+        return { ...item, badge, badgeVariant, isActive }
       })
     } else {
       // Owner menu items
@@ -213,6 +219,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         { title: "Create Attraction", url: "#", icon: Plus },
         { title: "Manage Attraction", url: "#", icon: Building2 },
         { title: "Visitor Analysis", url: "#", icon: Users },
+        { title: "Revenue Analytics", url: "#", icon: BarChart3 },
         { title: "Forecasts & Planning", url: "#", icon: Calendar },
         { title: "Reports", url: "#", icon: FileText },
         { title: "Settings", url: "#", icon: Settings },
@@ -221,6 +228,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return baseItems.map(item => {
         let badge: string | undefined
         let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "secondary"
+        const isActive = currentPage === item.title
 
         switch (item.title) {
           case "Performance Overview":
@@ -247,6 +255,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               badgeVariant = "default"
             }
             break
+          case "Revenue Analytics":
+            if (sidebarStats.recentActivity > 5) {
+              badge = "Updated"
+              badgeVariant = "default"
+            }
+            break
           case "Reports":
             if (sidebarStats.pendingReports > 0) {
               badge = sidebarStats.pendingReports.toString()
@@ -257,7 +271,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             break
         }
 
-        return { ...item, badge, badgeVariant }
+        return { ...item, badge, badgeVariant, isActive }
       })
     }
   }
@@ -357,22 +371,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={item.isActive}>
-                    <a href={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {item.badge && (
-                        <Badge 
-                          variant={item.badgeVariant || "secondary"} 
-                          className="ml-auto text-xs"
-                        >
-                          {item.badge}
-                        </Badge>
-                      )}
-                      {isLoading && item.title === "City Overview" && (
-                        <Activity className="h-3 w-3 animate-pulse ml-auto text-muted-foreground" />
-                      )}
-                    </a>
+                  <SidebarMenuButton 
+                    isActive={item.isActive}
+                    onClick={() => onPageChange?.(item.title)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                    {item.badge && (
+                      <Badge 
+                        variant={item.badgeVariant || "secondary"} 
+                        className="ml-auto text-xs"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                    {isLoading && item.title === "City Overview" && (
+                      <Activity className="h-3 w-3 animate-pulse ml-auto text-muted-foreground" />
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

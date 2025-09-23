@@ -7,23 +7,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAuth } from "@/contexts/auth-context"
-import { ownerApi } from "@/lib/api"
 import { 
   User, 
   Mail, 
   Phone, 
-  MapPin, 
-  Calendar, 
   Edit, 
   Save, 
   Camera, 
   Loader2,
   Building,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Calendar
 } from "lucide-react"
+import { ownerApi } from "@/lib/api"
 
 interface ProfileData {
   id: number
@@ -38,7 +35,6 @@ interface ProfileData {
 }
 
 export function OwnerProfile() {
-  const { user } = useAuth()
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -404,5 +400,3 @@ export function OwnerProfile() {
     </div>
   )
 }
-
-export default OwnerProfile

@@ -126,7 +126,15 @@ export function OwnerProfile() {
       }
 
       if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data)
+        // Map the API response to match our UserStats interface
+        const apiData = statsResponse.data
+        setStats({
+          totalVisitors: apiData.totalVisits || 0,
+          averageRating: apiData.averageRating || 0,
+          monthlyRevenue: 0, // Not provided by API, use fallback
+          growthRate: 0, // Not provided by API, use fallback
+          attractionCount: 1 // Default to 1 for owner
+        })
       }
 
       if (notificationResponse.success && notificationResponse.data) {

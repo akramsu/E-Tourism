@@ -601,27 +601,12 @@ export const ownerApi = {
   createAttraction: (attractionData: {
     name: string
     description: string
-    category: string
-    location: string
     address: string
-    city: string
-    state: string
-    zipCode: string
-    country: string
+    category: string
     latitude?: number
     longitude?: number
-    phoneNumber?: string
-    email?: string
-    website?: string
-    openingHours: any
-    ticketPrice: number
-    capacity: number
-    amenities?: string[]
-    accessibility?: string[]
-    ageRestriction?: string
-    duration?: number
-    difficulty?: string
-    tags?: string[]
+    openingHours?: string
+    ticketPrice?: number
   }) => apiClient.post<ApiResponse<any>>('/api/owner/attraction', attractionData),
 
   updateAttraction: (attractionId: number, updateData: any) =>
@@ -832,7 +817,7 @@ export const ownerApi = {
     apiClient.get<ApiResponse<any[]>>('/api/owner/report-types'),
 
   getAvailableMetrics: (attractionId: number) =>
-    apiClient.get<ApiResponse<any[]>>(`/api/owner/attraction/${attractionId}/available-metrics`),
+    apiClient.get<ApiResponse<any[]>>(`/api/owner/attraction/${attractionId}/report-metrics`),
 
   // Visitor Analysis
   getVisitorAnalytics: (attractionId: number, params?: {
@@ -977,6 +962,16 @@ export const ownerApi = {
     const query = searchParams.toString()
     return apiClient.get<ApiResponse<any>>(`/api/owner/attraction/${attractionId}/chart/interactive-donut${query ? `?${query}` : ''}`)
   },
+
+  // Profile Management
+  getProfile: () =>
+    apiClient.get<ApiResponse<any>>('/api/owner/profile'),
+
+  updateProfile: (profileData: {
+    fullName?: string
+    email?: string
+    phoneNumber?: string
+  }) => apiClient.put<ApiResponse<any>>('/api/owner/profile', profileData),
 }
 
 // Tourism Authority API

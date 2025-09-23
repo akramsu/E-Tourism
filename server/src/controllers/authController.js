@@ -198,12 +198,13 @@ const getProfile = async (req, res) => {
 // Update user profile
 const updateProfile = async (req, res) => {
   try {
-    const { username, phoneNumber, birthDate, postcode, gender, profileImage } = req.body
+    const { username, email, phoneNumber, birthDate, postcode, gender, profileImage } = req.body
     const userId = req.user.id
 
     console.log('Profile update request received:', {
       userId,
       username,
+      email,
       phoneNumber,
       birthDate,
       postcode,
@@ -211,7 +212,7 @@ const updateProfile = async (req, res) => {
       profileImage: profileImage ? 'base64 data present' : 'no image'
     })
 
-    // Check if username is taken by another user
+    // Check if username is taken by another user (only if username is provided and different)
     if (username && username !== req.user.username) {
       const existingUser = await prisma.user.findFirst({
         where: {
@@ -228,11 +229,29 @@ const updateProfile = async (req, res) => {
       }
     }
 
-    // Prepare update data
+    // Check if email is taken by another user (only if email is provided and different)
+    if (email && email !== req.user.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: email.toLowerCase(),
+          id: { not: userId }
+        }
+      })
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already taken'
+        })
+      }
+    }
+
+    // Prepare update data (only include fields that are actually provided)
     const updateData = {}
-    if (username) updateData.username = username.toLowerCase()
-    if (phoneNumber) updateData.phoneNumber = phoneNumber
-    if (birthDate) {
+    if (username !== undefined && username !== null) updateData.username = username.toLowerCase()
+    if (email !== undefined && email !== null) updateData.email = email.toLowerCase()
+    if (phoneNumber !== undefined && phoneNumber !== null) updateData.phoneNumber = phoneNumber
+    if (birthDate !== undefined && birthDate !== null) {
       // Handle birthDate properly - ensure it's a valid date
       const parsedDate = new Date(birthDate)
       if (isNaN(parsedDate.getTime())) {
@@ -243,8 +262,8 @@ const updateProfile = async (req, res) => {
       }
       updateData.birthDate = parsedDate
     }
-    if (postcode) updateData.postcode = postcode
-    if (gender) updateData.gender = gender
+    if (postcode !== undefined && postcode !== null) updateData.postcode = postcode
+    if (gender !== undefined && gender !== null) updateData.gender = gender
     
     if (profileImage) {
       console.log('Processing profile image:', {

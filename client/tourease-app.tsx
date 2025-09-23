@@ -23,12 +23,13 @@ import { SearchData } from "@/pages/authority/search-data"
 import { AIChat } from "@/pages/authority/ai-chat"
 import AuthorityProfile from "@/pages/authority/profile"
 import { PerformanceOverview } from "@/pages/owner/performance-overview"
-import { VisitorAnalysis } from "@/pages/owner/visitor-analysis"
+import VisitorAnalysis from "@/pages/owner/visitor-analysis"
 import { ForecastsPlanning } from "@/pages/owner/forecasts-planning"
 import { OwnerProfile } from "@/pages/owner/profile"
-import { OwnerReports } from "@/pages/owner/reports"
+import { OwnerReportsManagement } from "@/pages/owner/reports"
 import { CreateAttraction } from "@/pages/owner/create-attraction"
 import { ManageAttraction } from "@/pages/owner/manage-attraction"
+import { RevenueAnalytics } from "@/pages/owner/revenue-analytics"
 
 // Tourist Components
 import TouristNavigationHeader from "@/components/tourist/tourist-navigation-header"
@@ -206,10 +207,12 @@ function AppContent() {
           return <ManageAttraction />
         case "Visitor Analysis":
           return <VisitorAnalysis />
+        case "Revenue Analytics":
+          return <RevenueAnalytics />
         case "Forecasts & Planning":
           return <ForecastsPlanning />
         case "Reports":
-          return <OwnerReports />
+          return <OwnerReportsManagement />
         case "Profile":
           return <OwnerProfile />
         case "Settings":

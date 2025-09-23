@@ -34,6 +34,8 @@ interface AttractionFormData {
   name: string
   description: string
   address: string
+  city: string
+  province: string
   category: string
   latitude: string
   longitude: string
@@ -61,6 +63,37 @@ const categories = [
   { value: "HOTEL", label: "Hotel" },
 ]
 
+// Indonesian provinces with approximate center coordinates
+const indonesianProvinces = [
+  { value: "jakarta", label: "DKI Jakarta", lat: -6.2088, lng: 106.8456 },
+  { value: "west-java", label: "West Java", lat: -6.9175, lng: 107.6191 },
+  { value: "central-java", label: "Central Java", lat: -7.2575, lng: 110.1739 },
+  { value: "east-java", label: "East Java", lat: -7.5360, lng: 112.2384 },
+  { value: "yogyakarta", label: "DI Yogyakarta", lat: -7.7956, lng: 110.3695 },
+  { value: "bali", label: "Bali", lat: -8.4095, lng: 115.1889 },
+  { value: "north-sumatra", label: "North Sumatra", lat: 3.5952, lng: 98.6722 },
+  { value: "west-sumatra", label: "West Sumatra", lat: -0.7893, lng: 100.6614 },
+  { value: "south-sumatra", label: "South Sumatra", lat: -3.3194, lng: 104.9148 },
+  { value: "lampung", label: "Lampung", lat: -4.5586, lng: 105.4068 },
+  { value: "west-kalimantan", label: "West Kalimantan", lat: -0.2787, lng: 109.9758 },
+  { value: "central-kalimantan", label: "Central Kalimantan", lat: -1.6815, lng: 113.3824 },
+  { value: "south-kalimantan", label: "South Kalimantan", lat: -2.7411, lng: 115.2560 },
+  { value: "east-kalimantan", label: "East Kalimantan", lat: 0.7893, lng: 116.2422 },
+  { value: "north-sulawesi", label: "North Sulawesi", lat: 1.2384, lng: 124.8413 },
+  { value: "central-sulawesi", label: "Central Sulawesi", lat: -1.4300, lng: 121.4456 },
+  { value: "south-sulawesi", label: "South Sulawesi", lat: -3.6687, lng: 119.9740 },
+  { value: "southeast-sulawesi", label: "Southeast Sulawesi", lat: -4.1429, lng: 122.1750 },
+  { value: "maluku", label: "Maluku", lat: -3.2385, lng: 130.1453 },
+  { value: "papua", label: "Papua", lat: -4.2699, lng: 138.0804 },
+  { value: "west-papua", label: "West Papua", lat: -1.3361, lng: 133.1747 },
+]
+
+// Helper function to get coordinates based on province selection
+const getProvinceCoordinates = (provinceValue: string) => {
+  const province = indonesianProvinces.find(p => p.value === provinceValue)
+  return province ? { lat: province.lat, lng: province.lng } : { lat: -6.2088, lng: 106.8456 } // Default to Jakarta
+}
+
 export function CreateAttraction({ onAttractionCreated }: CreateAttractionProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -70,6 +103,8 @@ export function CreateAttraction({ onAttractionCreated }: CreateAttractionProps)
     name: "",
     description: "",
     address: "",
+    city: "",
+    province: "",
     category: "",
     latitude: "",
     longitude: "",
@@ -83,6 +118,17 @@ export function CreateAttraction({ onAttractionCreated }: CreateAttractionProps)
 
   const handleInputChange = (field: keyof AttractionFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    
+    // Auto-fill coordinates when province is selected
+    if (field === 'province' && value) {
+      const coords = getProvinceCoordinates(value)
+      setFormData((prev) => ({ 
+        ...prev, 
+        [field]: value,
+        latitude: coords.lat.toString(),
+        longitude: coords.lng.toString()
+      }))
+    }
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,44 +157,46 @@ export function CreateAttraction({ onAttractionCreated }: CreateAttractionProps)
     setError(null)
     
     try {
-      // Validate numeric fields
-      const latitude = parseFloat(formData.latitude)
-      const longitude = parseFloat(formData.longitude)
-      const price = parseFloat(formData.price)
-
-      if (isNaN(latitude) || isNaN(longitude)) {
-        throw new Error("Please enter valid latitude and longitude coordinates")
+      // Parse coordinates with fallbacks
+      let latitude = 0
+      let longitude = 0
+      
+      if (formData.latitude && formData.longitude) {
+        latitude = parseFloat(formData.latitude)
+        longitude = parseFloat(formData.longitude)
+        
+        // Validate coordinates are within Indonesia bounds
+        if (isNaN(latitude) || isNaN(longitude) || 
+            latitude < -11 || latitude > 6 || 
+            longitude < 95 || longitude > 141) {
+          throw new Error("Please enter valid coordinates within Indonesia")
+        }
+      } else if (formData.province) {
+        // Use province coordinates as fallback
+        const coords = getProvinceCoordinates(formData.province)
+        latitude = coords.lat
+        longitude = coords.lng
+      } else {
+        // Default to Jakarta coordinates
+        latitude = -6.2088
+        longitude = 106.8456
       }
 
+      const price = parseFloat(formData.price)
       if (isNaN(price) || price < 0) {
         throw new Error("Please enter a valid price")
       }
 
-      // Create attraction
+      // Create attraction - with improved location data
       const attractionData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
+        address: `${formData.address.trim()}${formData.city ? ', ' + formData.city : ''}${formData.province ? ', ' + indonesianProvinces.find(p => p.value === formData.province)?.label : ''}`,
         category: formData.category,
-        location: formData.address.trim(), // Use address as location
-        address: formData.address.trim(),
-        city: "Jakarta", // Default or extract from address
-        state: "Jakarta", // Default or extract from address  
-        zipCode: "12345", // Default or extract from address
-        country: "Indonesia", // Default
         latitude,
         longitude,
-        openingHours: JSON.parse(formData.openingHours.trim() || "{}"),
-        ticketPrice: price,
-        capacity: 100, // Default capacity
-        phoneNumber: "", // Optional
-        email: "", // Optional
-        website: "", // Optional
-        amenities: [],
-        accessibility: [],
-        ageRestriction: "All ages",
-        duration: 2, // Default 2 hours
-        difficulty: "Easy",
-        tags: []
+        openingHours: formData.openingHours.trim() || "", // Send as plain string
+        ticketPrice: price
       }
 
       console.log("Creating attraction with data:", attractionData)
@@ -198,7 +246,8 @@ export function CreateAttraction({ onAttractionCreated }: CreateAttractionProps)
       case 1:
         return formData.name.trim() && formData.description.trim() && formData.category
       case 2:
-        return formData.address.trim() && formData.latitude && formData.longitude
+        // Address is required, coordinates are optional (will use province defaults)
+        return formData.address.trim()
       case 3:
         return formData.openingHours.trim() && formData.price
       case 4:
@@ -335,52 +384,96 @@ export function CreateAttraction({ onAttractionCreated }: CreateAttractionProps)
               {currentStep === 2 && (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="address">Full Address *</Label>
+                    <Label htmlFor="address">Street Address *</Label>
                     <Textarea
                       id="address"
-                      placeholder="Enter the complete address including street, city, postal code..."
+                      placeholder="e.g., Jl. Malioboro No. 52, Yogyakarta"
                       value={formData.address}
                       onChange={(e) => handleInputChange("address", e.target.value)}
-                      rows={3}
+                      rows={2}
                     />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="latitude">Latitude *</Label>
+                      <Label htmlFor="city">City</Label>
                       <Input
-                        id="latitude"
-                        placeholder="-7.7956"
-                        value={formData.latitude}
-                        onChange={(e) => handleInputChange("latitude", e.target.value)}
+                        id="city"
+                        placeholder="e.g., Yogyakarta"
+                        value={formData.city}
+                        onChange={(e) => handleInputChange("city", e.target.value)}
                         className="h-12"
-                        type="number"
-                        step="any"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="longitude">Longitude *</Label>
-                      <Input
-                        id="longitude"
-                        placeholder="110.3695"
-                        value={formData.longitude}
-                        onChange={(e) => handleInputChange("longitude", e.target.value)}
-                        className="h-12"
-                        type="number"
-                        step="any"
-                      />
+                      <Label htmlFor="province">Province</Label>
+                      <Select value={formData.province} onValueChange={(value) => handleInputChange("province", value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Select province" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {indonesianProvinces.map((province) => (
+                            <SelectItem key={province.value} value={province.value}>
+                              {province.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4">
+                  <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Globe className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Location Tips</span>
+                      <MapPin className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800 dark:text-green-200">Smart Location</span>
                     </div>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      You can find coordinates using Google Maps. Right-click on your location and select the
-                      coordinates to copy them.
+                    <p className="text-xs text-green-700 dark:text-green-300 mb-3">
+                      When you select a province, we'll automatically set the coordinates for your attraction. You can fine-tune them below if needed.
                     </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Fine-tune Location (Optional)</span>
+                    </div>
+                    
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="latitude">Latitude</Label>
+                        <Input
+                          id="latitude"
+                          placeholder="Auto-filled from province"
+                          value={formData.latitude}
+                          onChange={(e) => handleInputChange("latitude", e.target.value)}
+                          className="h-12"
+                          type="number"
+                          step="any"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="longitude">Longitude</Label>
+                        <Input
+                          id="longitude"
+                          placeholder="Auto-filled from province"
+                          value={formData.longitude}
+                          onChange={(e) => handleInputChange("longitude", e.target.value)}
+                          className="h-12"
+                          type="number"
+                          step="any"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Globe className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Need Exact Coordinates?</span>
+                      </div>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        For precise location: Open Google Maps → Search your attraction → Right-click on the pin → Copy coordinates → Paste here
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
