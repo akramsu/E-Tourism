@@ -51,6 +51,10 @@ coverage/
 tmp/
 temp/
 
+# Internal documentation
+PROJECT_ANALYSIS.md
+INTERNAL_NOTES.md
+
 # Optional npm cache directory
 .npm
 
