@@ -91,10 +91,11 @@ A comprehensive tourism management platform that provides intelligent insights a
 
 4. **Database Setup**
    ```bash
-   cd server
-   npx prisma migrate dev
-   npx prisma generate
+   docker compose up -d mysql
+   npm run db:mysql:setup
    ```
+
+   This starts a local MySQL 8 container, resets the Prisma schema, and imports the mock data from [server/prisma/final_complete_mock_data.sql](server/prisma/final_complete_mock_data.sql).
 
 5. **Start the Application**
    

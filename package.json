@@ -10,7 +10,8 @@
     "build": "cd server && npm run build && cd ../client && npm run build",
     "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
     "start:server": "cd server && npm start",
-    "start:client": "cd client && npm start"
+    "start:client": "cd client && npm start",
+    "db:mysql:setup": "cd server && npm run db:setup:mysql"
   },
   "workspaces": [
     "client",
